@@ -5,12 +5,12 @@ library(tidyr)
 library(dplyr)
 library(ggsci)
 
-rough.df <- read.csv("data/first_bulk_data.csv", header = T)
+rough.df <- read.csv("data/data - Bulk SIA Data.csv", header = T)
 
 head(rough.df)
 str(rough.df)
 
-not.so.rough.df <- rough.df %>% select(-c(layer, data_sheet_ID, well_ID, tray_ID, Sample.Name, Sample.Wt., N.Signal, C.Signal, Conc.C, Conc.N))
+not.so.rough.df <- rough.df %>% select(-c(layer, data_sheet_ID, well_ID, tray_ID, Sample.Name, Sample.Wt., N.Signal, C.Signal, Conc.C, Conc.N, Notes))
 
 data <- not.so.rough.df %>%
   unite("spp_ID", species:ID, sep= "_", remove = FALSE)
@@ -25,6 +25,7 @@ str(data)
 lscs.df <- data %>% filter(species == "LSCS")
 bdwf.df <- data %>% filter(species == "BDWF")
 hbwf.df <- data %>% filter(species == "HBWF")
+
 
 # Visualize d15N data
 
@@ -151,3 +152,49 @@ ggplot(data = afs.df, aes(x = laminae, y = d15N, color = spp_ID)) +
   )
 
 ggsave("HBWF_AFS_plot.png", device = "png", dpi = 800)
+
+
+average.delta.laminae <- data %>% 
+  filter(species == "LSCS") %>% 
+  group_by(laminae) %>% 
+  summarise(
+    "mean.d15N" = mean(d15N),
+    "se.mean.d15N" = sqrt(var(mean.d15N)),
+    "mean.d13C" = mean(d13C),
+    "se.mean.d13C" = sqrt(var(mean.d13C))
+  )
+average.delta.laminae
+
+
+test.df <- data %>% 
+  group_by(species,laminae) %>% 
+  summarise(
+    "mean.d15N" = mean(d15N, na.rm = T),
+    "se.mean.d15N" = sqrt(var(d15N, na.rm = T)),
+    "mean.d13C" = mean(d13C, na.rm = T),
+    "se.mean.d13C" = sqrt(var(d13C, na.rm = T))
+  )
+test.df
+
+ggplot(data = test.df, aes(x = laminae, y = mean.d15N, color = species)) +
+  geom_point(cex = 3, position=position_dodge(0.2)) +
+  geom_line(cex = 0.8) +
+  geom_errorbar(aes(ymin=mean.d15N-se.mean.d15N, ymax=mean.d15N+se.mean.d15N), cex = 0.8, width=.2, position=position_dodge(0.2)) +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  xlab("Lamina layer") +
+  labs(color = "Species") +
+  scale_x_continuous(limits=c(-0.2,10.2),breaks=seq(0,11,1), expand = c(0,0.1)) +
+  theme(
+    panel.background = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=13, color="black"), 
+    strip.text = element_text(size = 13),
+    legend.position = c(0.7, 0.2),
+    axis.line=element_line()
+  )
+
+ggplot(data = test.df, aes(x = laminae, y = mean.d13C)) +
+  geom_point() +
+
+  geom_errorbar(aes(ymin=mean.d13C-se.mean.d13C, ymax=mean.d13C+se.mean.d13C), width=.2)
