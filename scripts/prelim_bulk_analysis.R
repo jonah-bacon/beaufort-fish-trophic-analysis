@@ -231,15 +231,15 @@ ggplot(data = average.delta.laminae, aes(x = laminae, y = mean.d13C, color = spe
 average.delta.laminae
 
 # Combined plot
-ggplot(data = average.delta.laminae, aes(x = mean.d13C, y = mean.d15N, color = species, label = laminae)) +
+ggplot(data = average.delta.laminae, aes(x = mean.d13C, y = mean.d15N, color = species, fill = species, label = laminae)) +
   geom_path(cex = 1.2, alpha = 0.5) +
   geom_errorbar(aes(ymin=mean.d15N-se.mean.d15N, ymax=mean.d15N+se.mean.d15N), cex = 0.5, width=.1) +
-  geom_errorbar(aes(xmin = mean.d13C-se.mean.d13C, xmax = mean.d13C+se.mean.d13C), cex = 0.5, width=.1, key_glyph = "point") +
-  geom_point(aes(fill = species), shape = 21, color = "black", cex = 5, show.legend = F) +
+  geom_errorbar(aes(xmin = mean.d13C-se.mean.d13C, xmax = mean.d13C+se.mean.d13C), cex = 0.5, width=.1) +
+  geom_point(aes(fill = species), shape = 21, color = "black", cex = 5) +
   # geom_label_repel(box.padding = 1, color = "black") +
   xlab(expression(italic(delta)^13*C~("\211"~" VPDB"))) +
   ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
-  scale_color_discrete(name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  #scale_color_discrete(name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
   scale_x_continuous(limits=c(-29.5,-20.5),breaks=seq(-29,-21,1), expand = c(0,0.1)) +
   scale_y_continuous(limits=c(3.5,12.5),breaks=seq(4,12,1), expand = c(0,0.1)) +
   guides(colour = guide_legend(override.aes = list(size = 1.2)))+
@@ -255,3 +255,6 @@ ggplot(data = average.delta.laminae, aes(x = mean.d13C, y = mean.d15N, color = s
     axis.line=element_line()
   )
 
+guide_legend(override.aes = list(
+  linetype = c(rep("blank", 7), "solid", "dashed"),
+  shape = c(rep(16, 7), NA, NA))
