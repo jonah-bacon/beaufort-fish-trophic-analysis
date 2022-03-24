@@ -255,4 +255,3 @@ ggplot(data = average.delta.laminae, aes(x = mean.d13C, y = mean.d15N, color = s
     axis.line=element_line()
   )
 
-?draw_key
