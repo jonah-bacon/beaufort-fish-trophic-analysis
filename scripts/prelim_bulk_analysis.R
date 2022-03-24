@@ -198,3 +198,27 @@ ggplot(data = test.df, aes(x = laminae, y = mean.d13C)) +
   geom_point() +
 
   geom_errorbar(aes(ymin=mean.d13C-se.mean.d13C, ymax=mean.d13C+se.mean.d13C), width=.2)
+
+ggplot(data = test.df, aes(x = laminae, y = mean.d15N, color = species)) +
+  geom_point(cex = 3, position=position_dodge(0.2)) +
+  stat_smooth(method="loess", span = 0.6, se=TRUE, aes(fill=species), alpha=0.1)
+
+ggplot(data = test.df, aes(x = laminae, y = mean.d15N, color = species)) +
+  geom_ribbon(aes(ymin = mean.d15N-se.mean.d15N, ymax = mean.d15N+se.mean.d15N, fill = species), alpha = 0.2, show.legend = F) +
+  geom_line(cex = 1.2) +
+  geom_point(cex = 4) +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  xlab("Lamina layer") +
+  scale_color_discrete(name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  scale_x_continuous(limits=c(-0.2,10.2),breaks=seq(0,11,1), expand = c(0,0.1)) +
+  theme(
+    panel.background = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=13, color="black"), 
+    legend.position = c(0.8, 0.2),
+    legend.key = element_rect(fill = "white"),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14),
+    axis.line=element_line()
+  )
