@@ -168,6 +168,8 @@ average.delta.laminae <- data %>%
   )
 average.delta.laminae
 
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
 ggplot(data = average.delta.laminae, aes(x = laminae, y = mean.d15N, color = species)) +
   geom_point(cex = 3, position=position_dodge(0.2)) +
   geom_line(cex = 0.8) +
@@ -231,30 +233,113 @@ ggplot(data = average.delta.laminae, aes(x = laminae, y = mean.d13C, color = spe
 average.delta.laminae
 
 # Combined plot
-ggplot(data = average.delta.laminae, aes(x = mean.d13C, y = mean.d15N, color = species, fill = species, label = laminae)) +
-  geom_path(cex = 1.2, alpha = 0.5) +
-  geom_errorbar(aes(ymin=mean.d15N-se.mean.d15N, ymax=mean.d15N+se.mean.d15N), cex = 0.5, width=.1) +
-  geom_errorbar(aes(xmin = mean.d13C-se.mean.d13C, xmax = mean.d13C+se.mean.d13C), cex = 0.5, width=.1) +
-  geom_point(aes(fill = species), shape = 21, color = "black", cex = 5) +
+ggplot(data = average.delta.laminae, aes(x = mean.d13C, y = mean.d15N)) +
+  geom_path(aes(color = species), cex = 1.2, alpha = 0.5, show.legend = F) +
+  # geom_errorbar(aes(ymin=mean.d15N-se.mean.d15N, ymax=mean.d15N+se.mean.d15N), cex = 0.5, width=.1) +
+  # geom_errorbar(aes(xmin = mean.d13C-se.mean.d13C, xmax = mean.d13C+se.mean.d13C), cex = 0.5, width=.1) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 5) +
+  scale_shape_manual(values=c(21,22,24), name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco"))+
   # geom_label_repel(box.padding = 1, color = "black") +
   xlab(expression(italic(delta)^13*C~("\211"~" VPDB"))) +
   ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
-  #scale_color_discrete(name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
-  scale_x_continuous(limits=c(-29.5,-20.5),breaks=seq(-29,-21,1), expand = c(0,0.1)) +
-  scale_y_continuous(limits=c(3.5,12.5),breaks=seq(4,12,1), expand = c(0,0.1)) +
-  guides(colour = guide_legend(override.aes = list(size = 1.2)))+
+  scale_fill_manual(values=cbPalette[c(1,6,2)], name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  scale_color_manual(values=cbPalette[c(1,6,2)]) +
+  scale_x_continuous(limits=c(-27,-21),breaks=seq(-27,-21,1), expand = c(0,0.1)) +
+  scale_y_continuous(limits=c(6,12.6),breaks=seq(6,12,1), expand = c(0,0.1)) +
+  # guides(colour = guide_legend(override.aes = list(size = 1.2)))+
+  theme(
+    panel.background = element_blank(),
+    axis.title.x = element_text(size=16),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=13, color="black"), 
+    legend.position = c(0.22, 0.85),
+    legend.key = element_rect(fill = "white"),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14, face = "bold"),
+    axis.line=element_line()
+  )
+
+ggsave("figures/URSA_plot_mean.d13c.vs.mean.d15n.png", device = "png", dpi = 800, width = 6, height = 6, units = "in")
+
+
+# Number of laminae by length
+length.dat <- read.csv("data/data.csv")
+
+length.dat <- length.dat %>% 
+  unite("spp_ID", species:ID, sep= "_", remove = FALSE) %>% 
+  inner_join(data, length.dat, by = "spp_ID")
+
+lin.model.dat <- length.dat %>% 
+  group_by(spp_ID) %>% 
+  summarize("species" = unique(species.x), "n.laminae" = length(laminae), "length_mm" = unique(length_mm))
+lin.model.dat
+lin.model.dat[3,3] <- 7
+lin.model.dat[4,3] <- 9
+lin.model <- lm(n.laminae ~ length_mm, data = lin.model.dat)
+summary(lin.model) # Slope significant (p-value = 0.004723); Adjusted R^2 = 0.3306
+
+ggplot(data = lin.model.dat, aes(x = length_mm, y = n.laminae)) +
+  geom_abline(color = "black", cex = 1.2, slope = 0.028568, intercept = -1.875996) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 5) +
+  geom_d
+  scale_shape_manual(values=c(21,22,24), name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  scale_fill_manual(values=cbPalette[c(1,6,2)], name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  scale_x_continuous(limits=c(220,400),breaks=seq(225,400,25), expand = c(0,5)) +
+  scale_y_continuous(limits=c(2.8,11.2),breaks=seq(3,11,1), expand = c(0,0.1)) +
+  xlab("Length (mm)") +
+  ylab("Number of lens lamina") +
+  theme(
+    panel.background = element_blank(),
+    axis.title.x = element_text(size=16),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=13, color="black"), 
+    legend.position = c(0.22, 0.85),
+    legend.key = element_rect(fill = "white"),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14, face = "bold"),
+    axis.line=element_line()
+  ) 
+
+ggsave("figures/URSA_plot_length.vs.n.lamina.png", device = "png", dpi = 800, width = 6, height = 6, units = "in")
+
+
+
+
+ggplot(data = data, aes(x = laminae, y = d15N)) +
+  # geom_ribbon(aes(ymin = mean.d15N-se.mean.d15N, ymax = mean.d15N+se.mean.d15N, fill = species), alpha = 0.2, show.legend = F) +
+  geom_line(cex = 1.2) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 5) +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  xlab("Lamina layer") +
+  scale_color_discrete(name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  scale_x_continuous(limits=c(0,10),breaks=seq(0,10,1), expand = c(0,0.1)) +
   theme(
     panel.background = element_blank(),
     axis.title.x = element_text(size=16, vjust = 0),
     axis.title.y = element_text(size =16),
     axis.text = element_text(size=13, color="black"), 
-    legend.position = c(0.18, 0.14),
+    legend.position = c(0.8, 0.2),
     legend.key = element_rect(fill = "white"),
     legend.text = element_text(size = 12),
     legend.title = element_text(size = 14),
     axis.line=element_line()
   )
 
-guide_legend(override.aes = list(
-  linetype = c(rep("blank", 7), "solid", "dashed"),
-  shape = c(rep(16, 7), NA, NA))
+ggplot(data = data, aes(x = laminae, y = d15N)) +
+  geom_line(aes(color = spp_ID), cex = 2, alpha = 0.5) +
+  geom_point(aes(fill = spp_ID), shape = 21, color = "black", cex = 5) +
+  xlab("Laminae Layer") +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]~" gas"))) +
+  scale_y_continuous(limits=c(3.25,13), breaks=seq(4,13,1), expand=c(0,0)) +
+  scale_x_continuous(limits = c(0,11), breaks = seq(0,11,1), expand = c(0,0.5)) +
+  facet_wrap(~species, nrow=1) +
+  theme(
+    panel.background = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=13, color="black"), 
+    strip.text = element_text(size = 13),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+
