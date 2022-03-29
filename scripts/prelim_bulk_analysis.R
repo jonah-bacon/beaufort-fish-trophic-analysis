@@ -30,10 +30,6 @@ hbwf.df <- data %>% filter(species == "HBWF")
 
 # Visualize d15N data
 
-ggplot(data = data, aes(x = laminae, y = d15N), ylab("Laminae layer")) +
-  geom_point(aes(col = species)) +
-  xlab("Laminae layer")
-
 ggplot(data = data, aes(x = laminae, y = d15N, col = spp_ID)) +
   geom_line() +
   geom_point() +
@@ -61,11 +57,6 @@ ggplot(data = bdwf.df, aes(x = laminae, y = d15N, col = ID)) +
   xlab("Laminae layer") +
   labs(col = "ID")
 
-ggplot(data = data, aes(x=laminae, y=d15N, color=spp_ID)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~spp_ID, ncol=2)
-
 i=1
 for (i in 1:length(unique(data$spp_ID))) {
   test.plot <- ggplot(data = data[data$spp_ID == levels(data$spp_ID)[i],], aes(x=laminae, y=d15N)) +
@@ -77,10 +68,6 @@ for (i in 1:length(unique(data$spp_ID))) {
 ### Now you can click through the plots in that lower right-hand plot window - There should be 11 of them, 1 for each individual
 
 # Visualize d13C data
-
-ggplot(data = data, aes(x = laminae, y = d13C), ylab("Laminae layer")) +
-  geom_point(aes(col = species)) +
-  xlab("Laminae layer")
 
 ggplot(data = data, aes(x = laminae, y = d13C, col = spp_ID)) +
   geom_line() +
@@ -109,13 +96,8 @@ ggplot(data = bdwf.df, aes(x = laminae, y = d13C, col = ID)) +
   xlab("Laminae layer") +
   labs(col = "ID")
 
-ggplot(data = data, aes(x=laminae, y=d13C, color=spp_ID)) +
-  geom_line() +
-  geom_point() +
-  facet_wrap(~spp_ID, ncol=2)
-
 i=1
-for (i in 1:11) {
+for (i in 1:length(unique(data$spp_ID))) {
   test.plot <- ggplot(data = data[data$spp_ID == levels(data$spp_ID)[i],], aes(x=laminae, y=d13C)) +
     geom_line() +
     geom_point() +
@@ -321,3 +303,18 @@ ggplot(data = final.df, aes(x = laminae, y = d15N)) +
   )
 
 ggsave("figures/example.d15n.vs.lamina.layer.png", device = "png", dpi = 800, width = 11.5, height = 4.2, units = "in")
+
+
+# 10 well-chosen samples --------------------------------------------------
+
+test2 <- data %>% 
+  group_by(spp_ID) %>% 
+  summarise(
+    "lamina" = max(laminae),
+    "d15N" = d15N[1],
+    "d13C" = d13C[1]
+  )
+
+ggplot(data = test2, aes(x = d13C, y = d15N, color = factor(lamina), label = spp_ID)) +
+  geom_point() +
+  geom_label_repel(box.padding = 0.2, color = "black")
