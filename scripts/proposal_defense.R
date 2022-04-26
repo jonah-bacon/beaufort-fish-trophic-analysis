@@ -632,7 +632,7 @@ length.dat <- length.dat %>%
 
 lin.model.dat <- length.dat %>%
   group_by(spp_ID) %>%
-  summarize("species" = unique(species.x), "n.laminae" = length(laminae), "length_mm" = unique(length_mm))
+  summarize("species" = unique(species.x), "n.laminae" = length(laminae), "length_mm" = unique(length_mm), "weight_kg" = unique(weight_kg))
 lin.model.dat
 lin.model.dat[3,3] <- 7
 lin.model.dat[4,3] <- 9
@@ -700,79 +700,32 @@ ggplot(data = cn.df, aes(x = spp_ID, y = C.N.ratio)) +
 ggsave("figures/CN.ratios.lamina.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 
-# WORK IN PROGRESS: carbon two-end-member mixing model ----------------------------------------
 
-mix.model.df <- delta.df %>% 
-  group_by(spp_ID, species, ID, laminae) %>% 
+## Two-end-member mixing model ---------------------------------------------
+
+mix.model.df <- delta.df %>%
+  group_by(spp_ID, species, ID, laminae) %>%
   summarise(
-    "d13C" = d13C, 
-    "adjusted.d13C" = d13C-2, 
-    "end1.d13C" = -21.6, 
-    "end2.d13C" = -27.4, 
+    "d13C" = d13C,
+    "adjusted.d13C" = d13C-2,
+    "end1.d13C" = -21.6,
+    "end2.d13C" = -27.4,
     "end2.ratio" = ((adjusted.d13C-end1.d13C)/(end2.d13C-end1.d13C)),
     "end1.ratio" = 1-end2.ratio,
     "percent.end1" = 100*end1.ratio,
-    "percent.end2" = 100*end2.ratio) %>% 
+    "percent.end2" = 100*end2.ratio) %>%
   na.omit()
-mix.model.df
 
-start.end.mix.model <- mix.model.df %>% 
-  group_by(spp_ID, species, ID) %>% 
-  filter(laminae == 0 | laminae == max(laminae)) %>% 
+start.end.mix.model <- mix.model.df %>%
+  group_by(spp_ID, species, ID) %>%
+  filter(laminae == 0 | laminae == max(laminae)) %>%
   summarise(
     "start.d13C" = d13C[laminae == 0],
     "end.d13C" = d13C[laminae != 0],
     "diff.d13C" = end.d13C - start.d13C,
-    "start.percent" = percent.end1[laminae == 0], 
-    "end.percent" = percent.end1[laminae != 0], 
+    "start.percent" = percent.end1[laminae == 0],
+    "end.percent" = percent.end1[laminae != 0],
     "diff.percent" = end.percent - start.percent)
-# start.mix.model
-# 
-# end.mix.model <- mix.model.df %>% 
-#   group_by(spp_ID, species, ID) %>%
-#   filter(laminae == max(laminae))
-# 
-# start.end.diff <- dend.mix.model - start.mix.model
-# start.mix.model  
-# group_by(species) %>% 
-#   summarise("mean.start.%" = filter(laminae == 0) %>% mean(percent.end1), "mean.end.%" = filter(laminae != 0) %>% mean(percent.end1))
-
-test.df <- start.end.mix.model %>% 
-  select(spp_ID, species, ID, start.d13C, end.d13C) %>% 
-  group_by(spp_ID, species, ID) %>% 
-  pivot_longer(cols = c(start.d13C, end.d13C), names_to = "time", values_to = "d13C")
-
-ggplot(data = test.df, aes(x = spp_ID, y = d13C, fill = species, shape = species)) +
-  geom_hline(yintercept = -27.4, cex = 1.2, color = "red") +
-  geom_point(aes(alpha = time), cex = 5, show.legend = FALSE) +
-  # geom_point(aes(y = end.d13C), cex = 5) +
-  geom_line(arrow = arrow(length = unit(0.1, "inches"), type = "closed")) +
-  xlab("Species ID") +
-  ylab(expression(Initial~(lens~nucleus)~italic(delta)^13*C)) +
-  scale_y_continuous(limits = c(-34,-20), breaks = seq(-34,-20,2), expand = c(0,0.2)) +
-  scale_alpha_discrete(range = c(1,0.4)) +
-  scale_shape_manual(values=c(21,22,24), name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
-  scale_fill_manual(values=cbPalette[c(1,3,2)], name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
-  theme(
-    panel.background = element_blank(),
-    panel.grid = element_line(color = "gray85"),
-    # panel.grid.minor.y = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.title = element_text(size=16),
-    axis.text.x = element_text(vjust = 0.5, angle = 90),
-    axis.text = element_text(size=13, color="black"),
-    legend.position = "none",
-    axis.line=element_line()
-  )
-
-
-muscle.mix.model <- mix.model.df %>% 
-  filter(Sample.Type == "M")
-muscle.mix.model <- data.frame(muscle.mix.model)
-muscle.mix.model
-
-
-# Beginning d13C values ---------------------------------------------------
 
 mix.model.df %>% 
   group_by(spp_ID, species, ID) %>% 
@@ -873,7 +826,8 @@ ggplot(aes(x = spp_ID, y = percent, fill = species, shape = species)) +
   )
 
 
-# Magnitude of change in marine percent vs other variables ----------------
+
+## Delta percent marine vs number of lamina --------------------------------
 
 start.end.mix.model %>% 
   select(spp_ID, species, ID, diff.percent) %>% 
@@ -898,6 +852,9 @@ ggplot(aes(x = n.laminae, y = diff.percent, fill = species, shape = species)) +
   )
 
 
+
+## Delta percent marine vs fish length -------------------------------------
+
 start.end.mix.model %>% 
   select(spp_ID, species, ID, diff.percent) %>% 
   merge(x = ., y = lin.model.dat) %>% 
@@ -907,6 +864,31 @@ ggplot(aes(x = length_mm, y = diff.percent, fill = species, shape = species)) +
   xlab("Fish length (mm)") +
   ylab(expression(Delta~"%"[marine]~from~lamina[0]-lamina[max])) +
   scale_x_continuous(limits = c(220,390), breaks = seq(225,375,25), expand = c(0,0)) +
+  scale_y_continuous(limits = c(-20,190), breaks = seq(-20,180,20), expand = c(0,5)) +
+  scale_shape_manual(values=c(21,22,24), name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  scale_fill_manual(values=cbPalette[c(1,3,2)], name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor.x = element_blank(),
+    axis.title = element_text(size=16),
+    axis.text = element_text(size=13, color="black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+
+
+## Delta percent marine vs fish weight -------------------------------------
+
+start.end.mix.model %>% 
+  select(spp_ID, species, ID, diff.percent) %>% 
+  merge(x = ., y = lin.model.dat) %>% 
+ggplot(aes(x = weight_kg*1000, y = diff.percent, fill = species, shape = species)) +
+  geom_hline(yintercept = 0, cex = 1.2, color = "black") +
+  geom_point(cex = 5) +
+  xlab("Fish weight (g)") +
+  ylab(expression(Delta~"%"[marine]~from~lamina[0]-lamina[max])) +
+  scale_x_continuous(limits = c(100,670), breaks = seq(100,650,50), expand = c(0,0)) +
   scale_y_continuous(limits = c(-20,190), breaks = seq(-20,180,20), expand = c(0,5)) +
   scale_shape_manual(values=c(21,22,24), name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
   scale_fill_manual(values=cbPalette[c(1,3,2)], name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco")) +
