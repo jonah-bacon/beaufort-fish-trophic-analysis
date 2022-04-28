@@ -248,159 +248,159 @@ ggplot(data = delta.df, aes(x = laminae, y = d15N)) +
 #   )
 
 
-## Individual d15N vs lamina layer, by species -----------------------------
+## d15N vs lamina layer, by species and ID -----------------------------
 
 ## Least cisco
 
 ggplot(data = lscs.delta.df, aes(x = laminae, y = d15N, color = spp_ID)) +
-  geom_line(cex = 1.2, color = "gray80") +
-  geom_point(cex = 3, color = "black") +
+  geom_line(cex = 0.8, color = "gray80") +
+  geom_point(cex = 2, color = "black") +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]~" gas"))) +
   scale_y_continuous(limits=c(4,14), breaks=seq(4,14,2), expand=c(0,0.5)) +
   scale_x_continuous(limits = c(0,9), breaks = seq(0,9,1), expand = c(0,0.5)) +
-  facet_wrap(~spp_ID, ncol=2, scales="free_y") +
+  facet_wrap(~spp_ID, nrow = 2, scales="free_y") +
   theme(
     panel.background = element_blank(),
     panel.grid = element_line(color = "gray85"),
     panel.grid.minor.x = element_blank(),
-    axis.title.x = element_text(size=16, vjust = 0),
-    axis.title.y = element_text(size =16),
+    axis.title.x = element_text(size=12, vjust = 0),
+    axis.title.y = element_text(size =12),
     axis.text = element_text(size=8, color="black"),
-    strip.text = element_text(size = 13),
+    strip.text = element_text(size = 8),
     strip.background = element_rect(fill = "gray80", color = "black"),
     legend.position = "none",
     axis.line=element_line()
   )
 
-# ggsave("figures/individual.d15N.per.lamina.LSCS.png", device = "png", dpi = "retina", width = 4.5, height = 4.5, units = "in")
+# ggsave("figures/individual.d15N.per.lamina.LSCS.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 ## Humpback whitefish
 
 ggplot(data = hbwf.delta.df, aes(x = laminae, y = d15N, color = spp_ID)) +
-  geom_line(cex = 1.2, color = "gray80") +
-  geom_point(cex = 3, color = "black") +
+  geom_line(cex = 0.8, color = "gray80") +
+  geom_point(cex = 2, color = "black") +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]~" gas"))) +
   scale_y_continuous(limits=c(3.5,12), breaks=seq(4,12,2), expand=c(0,0.5)) +
   scale_x_continuous(limits = c(0,10), breaks = seq(0,10,1), expand = c(0,0.5)) +
-  facet_wrap(~spp_ID, ncol=2, scales="free_y") +
+  facet_wrap(~spp_ID, nrow = 2, scales="free_y") +
   theme(
     panel.background = element_blank(),
     panel.grid = element_line(color = "gray85"),
     panel.grid.minor.x = element_blank(),
-    axis.title.x = element_text(size=16, vjust = 0),
-    axis.title.y = element_text(size =16),
+    axis.title.x = element_text(size=12, vjust = 0),
+    axis.title.y = element_text(size =12),
     axis.text = element_text(size=8, color="black"),
-    strip.text = element_text(size = 13),
+    strip.text = element_text(size = 8),
     strip.background = element_rect(fill = "gray80", color = "black"),
     legend.position = "none",
     axis.line=element_line()
   )
 
-# ggsave("figures/individual.d15N.per.lamina.HBWF.png", device = "png", dpi = "retina", width = 4.5, height = 4.5, units = "in")
+# ggsave("figures/individual.d15N.per.lamina.HBWF.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 ## Broad whitefish
 
 ggplot(data = bdwf.delta.df, aes(x = laminae, y = d15N, color = spp_ID)) +
-  geom_line(cex = 1.2, color = "gray80") +
-  geom_point(cex = 3, color = "black") +
+  geom_line(cex = 0.8, color = "gray80") +
+  geom_point(cex = 2, color = "black") +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]~" gas"))) +
   scale_y_continuous(limits=c(3.5,12), breaks=seq(4,12,2), expand=c(0,0.5)) +
   scale_x_continuous(limits = c(0,10), breaks = seq(0,10,1), expand = c(0,0.5)) +
-  facet_wrap(~spp_ID, ncol=2, scales="free_y") +
+  facet_wrap(~spp_ID, nrow = 2, scales="free_y") +
   theme(
     panel.background = element_blank(),
     panel.grid = element_line(color = "gray85"),
     panel.grid.minor.x = element_blank(),
-    axis.title.x = element_text(size=16, vjust = 0),
-    axis.title.y = element_text(size =16),
+    axis.title.x = element_text(size=12, vjust = 0),
+    axis.title.y = element_text(size =12),
     axis.text = element_text(size=8, color="black"),
-    strip.text = element_text(size = 13),
+    strip.text = element_text(size = 8),
     strip.background = element_rect(fill = "gray80", color = "black"),
     legend.position = "none",
     axis.line=element_line()
   )
 
-# ggsave("figures/individual.d15N.per.lamina.BDWF.png", device = "png", dpi = "retina", width = 4.5, height = 4.5, units = "in")
+# ggsave("figures/individual.d15N.per.lamina.BDWF.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
-## Individual d13C vs lamina layer, by species -----------------------------
+## d13C vs lamina layer, by species and ID -----------------------------
 
 ## Least cisco
 
 ggplot(data = lscs.delta.df, aes(x = laminae, y = d13C, color = spp_ID)) +
-  geom_line(cex = 1.2, color = "gray80") +
-  geom_point(cex = 3, color = "black") +
+  geom_line(cex = 0.8, color = "gray80") +
+  geom_point(cex = 2, color = "black") +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^13*C~("\211"~" VPDB"))) +
   scale_y_continuous(limits=c(-35,-20), breaks=seq(-35,-20, 3), expand=c(0,0.1)) +
   scale_x_continuous(limits = c(0,9), breaks = seq(0,9,1), expand = c(0,0.5)) +
-  facet_wrap(~spp_ID, ncol=2, scales="free_y") +
+  facet_wrap(~spp_ID, nrow = 2, scales="free_y") +
   theme(
     panel.background = element_blank(),
     panel.grid = element_line(color = "gray85"),
     panel.grid.minor.x = element_blank(),
-    axis.title.x = element_text(size=16, vjust = 0),
-    axis.title.y = element_text(size =16),
+    axis.title.x = element_text(size=12, vjust = 0),
+    axis.title.y = element_text(size =12),
     axis.text = element_text(size=8, color="black"),
-    strip.text = element_text(size = 13),
+    strip.text = element_text(size = 8),
     strip.background = element_rect(fill = "gray80", color = "black"),
     legend.position = "none",
     axis.line=element_line()
   )
 
-# ggsave("figures/individual.d13C.per.lamina.LSCS.png", device = "png", dpi = "retina", width = 4.5, height = 4.5, units = "in")
+# ggsave("figures/individual.d13C.per.lamina.LSCS.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 ## Humpback whitefish
 
 ggplot(data = hbwf.delta.df, aes(x = laminae, y = d13C, color = spp_ID)) +
-  geom_line(cex = 1.2, color = "gray80") +
-  geom_point(cex = 3, color = "black") +
+  geom_line(cex = 0.8, color = "gray80") +
+  geom_point(cex = 2, color = "black") +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^13*C~("\211"~" VPDB"))) +
   scale_y_continuous(limits=c(-30,-19.5), breaks=seq(-30,-20, 2), expand=c(0,0.1)) +
   scale_x_continuous(limits = c(0,10), breaks = seq(0,10,1), expand = c(0,0.5)) +
-  facet_wrap(~spp_ID, ncol=2, scales="free_y") +
+  facet_wrap(~spp_ID, nrow = 2, scales="free_y") +
   theme(
     panel.background = element_blank(),
     panel.grid = element_line(color = "gray85"),
     panel.grid.minor.x = element_blank(),
-    axis.title.x = element_text(size=16, vjust = 0),
-    axis.title.y = element_text(size =16),
+    axis.title.x = element_text(size=12, vjust = 0),
+    axis.title.y = element_text(size =12),
     axis.text = element_text(size=8, color="black"),
-    strip.text = element_text(size = 13),
+    strip.text = element_text(size = 8),
     strip.background = element_rect(fill = "gray80", color = "black"),
     legend.position = "none",
     axis.line=element_line()
   )
 
-# ggsave("figures/individual.d13C.per.lamina.HBWF.png", device = "png", dpi = "retina", width = 4.5, height = 4.5, units = "in")
+# ggsave("figures/individual.d13C.per.lamina.HBWF.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 ## Broad whitefish
 
 ggplot(data = bdwf.delta.df, aes(x = laminae, y = d13C, color = spp_ID)) +
-  geom_line(cex = 1.2, color = "gray80") +
-  geom_point(cex = 3, color = "black") +
+  geom_line(cex = 0.8, color = "gray80") +
+  geom_point(cex = 2, color = "black") +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^13*C~("\211"~" VPDB"))) +
   scale_y_continuous(limits=c(-25,-20), breaks=seq(-24,-20, 2), expand=c(0,0.1)) +
   scale_x_continuous(limits = c(0,10), breaks = seq(0,10,1), expand = c(0,0.5)) +
-  facet_wrap(~spp_ID, ncol=2, scales="free_y") +
+  facet_wrap(~spp_ID, nrow = 2, scales="free_y") +
   theme(
     panel.background = element_blank(),
     panel.grid = element_line(color = "gray85"),
     panel.grid.minor.x = element_blank(),
-    axis.title.x = element_text(size=16, vjust = 0),
-    axis.title.y = element_text(size =16),
+    axis.title.x = element_text(size=12, vjust = 0),
+    axis.title.y = element_text(size =12),
     axis.text = element_text(size=8, color="black"),
-    strip.text = element_text(size = 13),
+    strip.text = element_text(size = 8),
     strip.background = element_rect(fill = "gray80", color = "black"),
     legend.position = "none",
     axis.line=element_line()
   )
 
-# ggsave("figures/individual.d13C.per.lamina.BDWF.png", device = "png", dpi = "retina", width = 4.5, height = 4.5, units = "in")
+# ggsave("figures/individual.d13C.per.lamina.BDWF.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 ## BDWF_45 two eye reconstruction ------------------------------------------
 bdwf.45.df <- bdwf.delta.df %>% 
@@ -409,8 +409,8 @@ bdwf.45.df <- bdwf.delta.df %>%
 ggplot(data = bdwf.45.df, aes(x = laminae, y = d13C, color = spp_ID, fill = spp_ID)) +
   geom_line(cex = 1.2, alpha = 0.5) +
   geom_point(shape = 21, color = "black", cex = 4) +
-  scale_fill_jco() +
-  scale_color_jco() +
+  scale_fill_manual(values = cbPalette[c(7,4)]) +
+  scale_color_manual(values = cbPalette[c(7,4)]) +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^13*C~("\211"~" VPDB"))) +
   scale_y_continuous(limits=c(-25,-20), breaks=seq(-25,-20, 1), minor_breaks = seq(-25,-20, 0.5), expand=c(0,0.1)) +
@@ -437,8 +437,8 @@ ggplot(data = bdwf.45.df, aes(x = laminae, y = d13C, color = spp_ID, fill = spp_
 ggplot(data = bdwf.45.df, aes(x = laminae, y = d15N, color = spp_ID, fill = spp_ID)) +
   geom_line(cex = 1.2, alpha = 0.5) +
   geom_point(shape = 21, color = "black", cex = 4) +
-  scale_fill_jco() +
-  scale_color_jco() +
+  scale_fill_manual(values = cbPalette[c(7,4)]) +
+  scale_color_manual(values = cbPalette[c(7,4)]) +
   xlab("Lamina Layer") +
   ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]~" gas"))) +
   scale_y_continuous(limits=c(4,11), breaks=seq(4,11,1), expand=c(0,0.1)) +
@@ -610,8 +610,8 @@ summary(muscle.fin.d15N.lm) # m = 1.14 (p = <0.01), b = -1.29 (p = 0.37), adj. R
 ggplot(correlation.df, aes(x = muscle.d13C, y = fin.d13C)) +
   geom_abline(slope = 1, intercept = 0, cex = 1, lty = 2, color = "black") +
   geom_point(aes(fill = species, shape = species), size = 5, color = "black") +
-  xlab(expression(Muscle~italic(delta)^13*C~("\211"~VPDB))) +
-  ylab(expression(Fin~italic(delta)^13*C~("\211"~VPDB))) +
+  xlab(expression(Muscle~tissue~italic(delta)^13*C~("\211"~VPDB))) +
+  ylab(expression(Fin~tissue~italic(delta)^13*C~("\211"~VPDB))) +
   scale_x_continuous(limits=c(-25,-19.5), breaks=seq(-25,-20, 1), expand=c(0,0.1)) +
   scale_y_continuous(limits=c(-25,-19.5), breaks=seq(-25,-20, 1), expand=c(0,0.1)) +
   scale_shape_manual(values=c(21,22,24), name = "Species", labels = c("Broad whitefish", "Humpback whitefish", "Least cisco"))+
