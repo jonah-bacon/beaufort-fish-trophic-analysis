@@ -79,9 +79,6 @@ c25 <- c(
   "darkorange4", "brown"
 )
 
-delta.df %>% 
-  group_by(ID) %>% 
-  summarise("n" = n())
 #f
 # Load eye lens data ------------------------------------------------------
 
@@ -1122,3 +1119,4 @@ juvenile.fish.summer2 <- 5*4*5 #100
 
 total.lam.samples.bulk <- sum(adult.fish.summer1, adult.fish.summer2, juvenile.fish.summer2) # 590
 total.bulk.costs.left <- 14*total.lam.samples.bulk # $8,260
+
