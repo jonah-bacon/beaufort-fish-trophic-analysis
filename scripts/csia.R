@@ -119,5 +119,7 @@ ggplot(combined.csia.weighted.means.df, aes(x = tempvar, y = TP, color = Species
   theme(
     panel.background = element_blank(),
     panel.grid.major.y = element_line(color = "gray70"),
+    legend.key = element_blank(),
     text = element_text(size = 14, face = "bold")
   )
+ggsave(file = "figures/CSIA_TP.png", width = 7.5, height = 10, units = "in", dpi = 600)
