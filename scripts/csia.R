@@ -189,6 +189,43 @@ delta.df %>%
   )
 
 
-# Plot Phe delta 15N versus time point ------------------------------------
+# Plot source AA (Phe) vs lamina time -------------------------------------
 
+temp.dat3 <- temp.dat1 %>% 
+  group_by(CSIA_ID, Sample_ID) %>% 
+  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+            Phe_d15N = mean(Phe, na.rm = T),
+            Glu_d15N = mean(Glu, na.rm = T))
+temp.dat3$tempvar <- c(2,1,2,1,3,1,2,3,1,2)
 
+ggplot(temp.dat3, aes(x = tempvar, y = Phe_d15N, color = Species, fill = Species, label = round(Phe_d15N,2))) +
+  scale_color_jco() +
+  scale_fill_jco() +
+  geom_line(lwd = 2) +
+  geom_point(pch = 21, size = 4, color = "black") +
+  geom_label_repel(fill = "white", color = "black", box.padding = 1) +
+  xlab("Relative Time Point") +
+  ylab("Source AA (Phe) d15N") +
+  scale_x_continuous(limits = c(0.8,3.2), breaks = seq(1,3,1), expand = c(0,0)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "gray70"),
+    legend.key = element_blank(),
+    text = element_text(size = 14, face = "bold")
+  )
+
+ggplot(temp.dat3, aes(x = tempvar, y = Glu_d15N, color = Species, fill = Species, label = round(Glu_d15N,2))) +
+  scale_color_jco() +
+  scale_fill_jco() +
+  geom_line(lwd = 2) +
+  geom_point(pch = 21, size = 4, color = "black") +
+  geom_label_repel(fill = "white", color = "black", box.padding = 1) +
+  xlab("Relative Time Point") +
+  ylab("Trophic AA (Glu) d15N") +
+  scale_x_continuous(limits = c(0.8,3.2), breaks = seq(1,3,1), expand = c(0,0)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid.major.y = element_line(color = "gray70"),
+    legend.key = element_blank(),
+    text = element_text(size = 14, face = "bold")
+  )
