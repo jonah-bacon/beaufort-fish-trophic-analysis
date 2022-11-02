@@ -37,7 +37,7 @@ rm(list = ls())
 
 library(devtools)
 library(ggplot2)
-# devtools::install_github("andrewljackson/SIBER@v2.1.4", build_vignettes = TRUE)
+devtools::install_github("andrewljackson/SIBER@v2.1.4", build_vignettes = TRUE)
 library(SIBER)
 #install.packages("rjags")
 #install.packages("coda")
