@@ -6,7 +6,6 @@
 
 # Load packages -----------------------------------------------------------
 
-library(ggplot2)
 library(tidyverse)
 library(ggsci)
 library(vegan)
@@ -24,7 +23,7 @@ prey.presence <- stomach.df %>%
   select("spp_ID", "Species", "ID", "Prey_present", "Relative_fullness", "Total_contents_weight_g")
 
 prey.count <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", contains(".Count"))
+  dplyr::select("spp_ID", "Species", "ID", contains(".Count"))
   
 prey.weight <- stomach.df %>% 
   select("spp_ID", "Species", "ID", contains(".Weight"))
@@ -72,6 +71,10 @@ prey.percent <- prey.percent %>%
   separate(Prey_group, into = c("Prey_group", "Measurement"))
 prey.percent$Measurement <- rep("Relative_percent", length(prey.percent$Measurement))
 
+prey.percent %>% 
+  group_by(spp_ID) %>% 
+  summarise(Total = sum(Value)) %>% 
+  filter(Total != 100)
 
 # Stomachs with prey ------------------------------------------------------
 
@@ -249,40 +252,6 @@ summarized.diversity.evenness
 
 # Diet overlap ------------------------------------------------------------
 
-
-# mean.prey.weight <- total.prey.weight %>% 
-#   group_by(Species, Prey_group, Total_prey_weight) %>% 
-#   summarise(
-#     "N_stomachs_w_prey" = ifelse(Species == "ARCS", 46, 
-#                                  ifelse(Species == "BDWF", 23,
-#                                         ifelse(Species == "HBWF", 47,
-#                                                56))),
-#     "Mean_prey_weight" = Total_prey_weight/N_stomachs_w_prey
-#   )
-# mean.prey.weight
-
-
-
-# total.prey.percent <- long.prey.df %>% 
-#   filter(Measurement == "Relative_percent") %>% 
-#   group_by(Species, Prey_group) %>% 
-#   summarise(
-#     "Total_prey_percent" = sum(Value)
-#   )
-# total.prey.percent
-# 
-# mean.prey.percent <- total.prey.percent %>% 
-#   group_by(Species, Prey_group, Total_prey_percent) %>% 
-#   summarise(
-#     "N_stomachs_w_prey" = ifelse(Species == "ARCS", 46, 
-#                                  ifelse(Species == "BDWF", 23,
-#                                         ifelse(Species == "HBWF", 47,
-#                                                56))),
-#     "Mean_prey_percent" = Total_prey_percent/N_stomachs_w_prey
-#   )
-# mean.prey.percent
-
-
 # Schoener index by prey count --------------------------------------------
 
 long.prey.df %>% 
@@ -309,39 +278,39 @@ ARCS.BDWF.count <- total.prey.count %>%
   filter(Species == "ARCS" | Species == "BDWF") %>% 
   group_by(Prey_group) %>% 
   summarise(
-    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent[1] - Prey_percent[2]), Prey_percent)
+    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
   )
 ARCS.HBWF.count <- total.prey.count %>% 
   filter(Species == "ARCS" | Species == "HBWF") %>% 
   group_by(Prey_group) %>% 
   summarise(
-    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent[1] - Prey_percent[2]), Prey_percent)
+    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
   )
 ARCS.LSCS.count <- total.prey.count %>% 
   filter(Species == "ARCS" | Species == "LSCS") %>% 
   group_by(Prey_group) %>% 
   summarise(
-    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent[1] - Prey_percent[2]), Prey_percent)
+    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
   )
 BDWF.HBWF.count <- total.prey.count %>% 
   filter(Species == "BDWF" | Species == "HBWF") %>% 
   group_by(Prey_group) %>% 
   summarise(
-    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent[1] - Prey_percent[2]), Prey_percent)
+    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
   )
 BDWF.LSCS.count <- total.prey.count %>% 
   filter(Species == "BDWF" | Species == "LSCS") %>% 
   group_by(Prey_group) %>% 
   summarise(
-    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent[1] - Prey_percent[2]), Prey_percent)
+    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
   )
 HBWF.LSCS.count <- total.prey.count %>% 
   filter(Species == "HBWF" | Species == "LSCS") %>% 
   group_by(Prey_group) %>% 
   summarise(
-    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent[1] - Prey_percent[2]), Prey_percent)
+    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
   )
-prey.count.schoener <- merge(ARCS.BDWF, merge(ARCS.HBWF, merge(ARCS.LSCS, merge(BDWF.HBWF, merge(BDWF.LSCS, HBWF.LSCS, all = T), all = T), all = T), all = T), all = T)
+prey.count.schoener <- merge(ARCS.BDWF.count, merge(ARCS.HBWF.count, merge(ARCS.LSCS.count, merge(BDWF.HBWF.count, merge(BDWF.LSCS.count, HBWF.LSCS.count, all = T), all = T), all = T), all = T), all = T)
 
 schoener.index.count <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "schoener.index.count" = rep(NA,6))
 schoener.index.count
@@ -355,7 +324,7 @@ schoener.index.count
 
 # Schoener index by prey weight -------------------------------------------
 
-test.df <- long.prey.df %>% 
+long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
   group_by(Species) %>% 
   summarise(
@@ -502,4 +471,149 @@ combined.schoener.index
 
 # ANOVA for differences in diet by predator -------------------------------
 
-glm(predator ~ prey.count + prey.weight + prey.percent)
+# glm(predator.species ~ prey.count + prey.weight + prey.percent + ...)
+
+stomach.glm.df <- stomach.df %>% 
+  filter(spp_ID != "HBWF_18" & spp_ID != "HBWF_31") %>% 
+  dplyr:: select(-c(spp_ID, ID, Prey_present, Relative_fullness, Total_contents_weight_g, Unidentifiable.Count, Vegetation.Count))
+
+stomach.glm.df$Isopods.Count <- as.integer(stomach.glm.df$Isopods.Count)
+stomach.glm.df$Amphipods.Count <- as.integer(stomach.glm.df$Amphipods.Count)
+stomach.glm.df$Bivalves.Count <- as.integer(stomach.glm.df$Bivalves.Count)
+stomach.glm.df$Vertebrate.Weight_g <- as.numeric(stomach.glm.df$Vertebrate.Weight_g)
+
+levels(stomach.glm.df$Species)
+# levels(stomach.glm.df$spp)
+# stomach.glm.df$spp <- relevel(stomach.glm.df$Species, ref = "BDWF")
+
+stomach.glm.df <- droplevels(stomach.glm.df)
+test <- multinom(Species ~ 
+                   Unidentifiable.Weight_g + Unidentifiable.Relative_percent + Amphipods.Count, data = stomach.glm.df)
+summary(test)
+
+z <- summary(test)$coefficients/summary(test)$standard.errors
+z
+p <- (1 - pnorm(abs(z), 0, 1)) * 2
+p
+
+exp(coef(test))
+
+head(pp <- fitted(test))
+str(stomach.glm.df)
+glm.fit <- multinom(Species ~ .-ID, data = stomach.glm.df)
+summary(glm.fit)
+#Prediction
+predict(glm.fit, newdata, "probs")
+
+
+
+# NMDS --------------------------------------------------------------------
+
+require(vegan)
+require(bugR)
+
+ord1 <- prey.count %>% 
+  dplyr::select(-c(Species,ID)) %>% 
+  filter(spp_ID != "ARCS_106")
+rownames(ord1) <- ord1$spp_ID
+ord1 <- ord1 %>% 
+  dplyr::select(-spp_ID)
+ord1[is.na(ord1)] <- 0
+ord1 <- as.matrix(ord1)
+
+env1 <- prey.count %>% 
+  dplyr::select(c(spp_ID, Species)) %>% 
+  filter(spp_ID != "ARCS_106")
+rownames(env1) <- env1$spp_ID
+env1 <- env1 %>% 
+  dplyr::select(-spp_ID)
+
+##### Prepare dataset for ordination #####
+
+## Get coefficient of variation in data by rows and columns
+cv(ord1)
+## NOTE: Ideally (according to McCune & Grace 2002 textbook), we want <100 for both
+## Column cv violates this heavily. Let's deal with this.
+
+## Delete rare species
+ord2 <- delRare(ord1)
+cv(ord2)
+## NOTE: Default here is getting rid of species not present in >5% of samples
+## CV reduced substantially, but still unacceptably high.
+
+## Relativize abundance by column (species)
+ord3 <- bugR::rel(ord2)
+cv(ord3)
+## NOTE: This will turn every column into a vector of proportion data, from 0 to 1.
+## That gets our CV down some more. Good!
+
+
+
+##### Run ordinations #####
+
+## Run a quick and dirty ordination to create a step down plot
+NMS(ord2,maxruns=1000,stepdown = TRUE)
+## NOTE: This helps identify the ideal dimensionality of the ordination (usually 2D or 3D).
+## In these plots, lower stress is better, but we are looking for an inflection point.
+## The NMS function creates a folder called "NMS Output" in your working directory where
+## it saves the NMS output (matrices of output species and site data).
+
+## Run a full ordination using only 2 (and 3) dimensions
+NMS(ord2, maxruns = 10000, stepdown = FALSE, only23 = TRUE)
+
+## Read in site and species point data from ordination output and plot
+site1 <- read.csv('NMS Output/NMSPoints2D.csv', row.names = 1)
+spp1 <- read.csv('NMS Output/NMSSpecies2D.csv', row.names = 1)
+plot(site1)
+## NOTE: Great, we have a plot. But what does it mean? Let's dig deeper.
+
+
+
+##### Fit environmental data to ordination #####
+
+env1 <- filter(env1, rownames(env1) %in% rownames(site1))
+## Compute fit, get vectors
+fit1 <- envfit(site1, env1)
+## NOTE: Some of our environmental parameters seem not very important to the ordination.
+
+## Get R2 of ordination
+axisR2(site1, ord3)
+
+## Rotate ordination axes to align Axis 1 along strongest environmental gradient.
+rot1 <- ordRotate(site1, fit1, 'DistancePrimary', x.axis = FALSE, flip = TRUE)
+fit2 <- envfit(rot1, env1)
+plot(rot1)
+
+## Overlay environmental vectors to create a biplot
+for(i in 1:2){
+  arrows(0, 0, 0.9 * fit2$vectors$arrows[i,1], 0.9 * fit2$vectors$arrows[i,2], lty = i + 1)
+}
+legend('topright', legend = c('Day post-flood', 'Distance from primary refugia'), lty = 2:3,
+       bty = 'n')
+
+## Add ellipses for site groupings
+col1 <- c('blue', 'green', 'orange', 'red')
+lty1 <- c(1, 5, 2, 3)
+grp1 <- LETTERS[1:4]
+ordiellipse(site1, env1$Species, col = col1, lty = lty1)
+legend('topleft', legend = c('ARCS', 'LSCS', 'BDWF', 'HBWF'), lty = lty1, col = col1, 
+       bty = 'n')
+
+## Re-plot for time groupings, with no individual points (for cleanliness)
+plot(rot1, type = 'n')
+col2 <- c('darkred', 'red', 'orange', 'green', 'darkgreen', 'blue', 'purple')
+lty2 <- c(7, 6, 5, 4, 3, 2, 1)
+ordiellipse(rot1, env1$Day, col = col2, lty = lty2)
+legend('topright', legend = paste0('Day', unique(env1$Day)), lty = lty2, col = col2, 
+       bty = 'n')
+
+
+
+
+# NMDS (or MDS?)
+# Matrix 1:
+# Columns = Group & Gut, where Group is the Predator.Species and Gut is the unique ID for the stomach
+
+# Matrix 2:
+# Columns = Gut & all the prey columns (e.g., Amphipod.Count, Isopod.Count, Amphipod.Weight, ...)
+
