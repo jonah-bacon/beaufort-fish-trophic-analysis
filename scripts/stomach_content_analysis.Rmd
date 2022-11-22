@@ -16,6 +16,7 @@ output:
 
 ## Load libraries
 library(data.table)
+library(here)
 library(tidyverse)
 library(knitr)
 library(ggsci)
@@ -23,93 +24,27 @@ library(vegan)
 library(kableExtra)
 
 ## Load data
-stomach.df <- read.csv("C:/Users/Bacon/Dropbox/PC (2)/Downloads/beaufort-fish-trophic-analysis/data/Stomach_contents.csv", skip = 1, header = TRUE)
-
-
-stomach.df <- stomach.df %>% 
-  separate(spp_ID, into = c("Species", "ID"), sep = "_", remove = FALSE)
-stomach.df$Species <- as.factor(stomach.df$Species)
-stomach.df$ID <- as.integer(stomach.df$ID)
-
-prey.presence <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", "Prey_present", "Relative_fullness", "Total_contents_weight_g")
-
-prey.count <- stomach.df %>% 
-  dplyr::select("spp_ID", "Species", "ID", contains(".Count"))
-  
-prey.weight <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", contains(".Weight"))
-
-prey.percent <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", contains(".Relative_percent"))
-
-## QAQC Prey data 
-str(prey.presence)
-unique(prey.presence$Species) # ARCS, LSCS, BDWF, HBWF
-unique(prey.presence$Prey_present) # 0, 1
-unique(prey.presence$Relative_fullness) # 0, 1, 2, 3
-prey.presence$spp_ID[duplicated(prey.presence$spp_ID)]
-
-str(prey.count)
-unique(prey.count$Isopods.Count)
-unique(prey.count$Amphipods.Count)
-unique(prey.count$Bivalves.Count)
-prey.count <- prey.count %>% 
-  filter(Isopods.Count != "missing" & Amphipods.Count != "missing" & Bivalves.Count != "missing")
-prey.count$Isopods.Count <- as.integer(prey.count$Isopods.Count)
-prey.count$Amphipods.Count <- as.integer(prey.count$Amphipods.Count)
-prey.count$Bivalves.Count <- as.integer(prey.count$Bivalves.Count)
-str(prey.count)
-
-str(prey.weight)
-prey.weight$Vertebrate.Weight_g <- as.numeric(prey.weight$Vertebrate.Weight_g)
-str(prey.weight)
-
-str(prey.percent)
-
-prey.count <- prey.count %>% 
-  gather(key = "Prey_group", value = "Value", 4:16, na.rm = T) %>% 
-  separate(Prey_group, into = c("Prey_group", "Measurement"))
-
-prey.weight <- prey.weight %>% 
-  gather(key = "Prey_group", value = "Value", 4:16, na.rm = T) %>% 
-  separate(Prey_group, into = c("Prey_group", "Measurement"))
-prey.weight$Measurement <- rep("Weight_g", length(prey.weight$Measurement))
-
-prey.percent <- prey.percent %>% 
-  gather(key = "Prey_group", value = "Value", 4:16, na.rm = T) %>% 
-  separate(Prey_group, into = c("Prey_group", "Measurement"))
-prey.percent$Measurement <- rep("Relative_percent", length(prey.percent$Measurement))
-
-prey.percent %>% 
-  group_by(spp_ID) %>% 
-  summarise(Total = sum(Value)) %>% 
-  filter(Total != 100)
+load(here::here("C:/Users/Bacon/Downloads/beaufort-fish-trophic-analysis/data/stomach_content_workspace.RData"))
 
 ```
 
 # Stomachs with prey
 
 ```{r stomachpreypresence, echo = FALSE}
-stomachs.w.prey <- prey.presence %>% 
-  group_by(Species) %>% 
-  summarise(
-    "N_stomachs" = n(),
-    "N_stomachs_w_prey" = sum(Prey_present > 0),
-    "Proportion" = sum(Prey_present > 0)/length(Prey_present))
 kable(stomachs.w.prey) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+
+stomachs.w.prey %>% 
+  gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
+ggplot() +
+  geom_col(aes(x = year_collected, y = Value, fill = Presence)) +
+  facet_wrap(vars(Species)) +
+  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE))
 ```
 
 # Average fullness
 
 ```{r averagefullness, echo = FALSE}
-average.fullness <- prey.presence %>% 
-  filter(Prey_present == 1) %>% 
-  group_by(Species) %>% 
-  summarise("Stomachs<50%" = sum(Relative_fullness == 1),
-            "Stomachs50-100%" = sum(Relative_fullness == 2),
-            "Stomachs>100%" = sum(Relative_fullness == 3))
 kable(average.fullness) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
@@ -117,37 +52,30 @@ kable(average.fullness) %>%
 # Average stomach weight
 
 ```{r averageweight, echo = FALSE}
-average.weight <- prey.presence %>% 
-  filter(Prey_present == 1) %>% 
-  group_by(Species) %>% 
-  summarise("Average_weight_g" = mean(Total_contents_weight_g, na.rm = T))
 kable(average.weight) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+
+ggplot(prey.presence) +
+  geom_boxplot(aes(x = year_collected, y = log(Total_contents_weight_g)), outlier.shape = NA) +
+  geom_jitter(aes(x = year_collected, y = log(Total_contents_weight_g)), color = "black", alpha = 0.9) +
+  facet_wrap(vars(Species))
+
+ggplot(prey.presence) +
+  geom_boxplot(aes(x = year_collected, y = Total_contents_weight_g), outlier.shape = NA) +
+  geom_jitter(aes(x = year_collected, y = Total_contents_weight_g), color = "black", alpha = 0.9) +
+  facet_wrap(vars(Species)) +
+  scale_y_continuous(limits = c(0,5))
+
+ggplot(prey.presence) +
+  geom_histogram(aes(x = Total_contents_weight_g), col = "white") +
+  facet_grid(rows = vars(Species), cols = vars(year_collected)) +
+  scale_x_continuous(limits = c(0,5)) +
+  scale_y_continuous(limits = c(0,14), breaks = seq(0,14,2))
 ```
 
 # Frequency of occurrence
 
 ```{r freqoccurrence, echo = FALSE}
-long.prey.df <- rbind(prey.count, prey.weight, prey.percent)
-
-frequency.of.occurrence <- long.prey.df %>% 
-  filter(Measurement == "Weight_g") %>% 
-  group_by(Species) %>% 
-  summarise(
-    "Planerians" = sum(Prey_group == "Planerians"),
-    "Isopods" = sum(Prey_group == "Isopods"),
-    "Amphipods" = sum(Prey_group == "Amphipods"),
-    "Bivalves" = sum(Prey_group == "Bivalves"),
-    "Oligochaets" = sum(Prey_group == "Oligochaets"),
-    "Insects" = sum(Prey_group == "Insects"),
-    "Vertebrate" = sum(Prey_group == "Vertebrate"),
-    "Chironomid" = sum(Prey_group == "Chironomid"),
-    "Mysid" = sum(Prey_group == "Mysid"),
-    "Fish" = sum(Prey_group == "Fish"),
-    "Nematodes" = sum(Prey_group == "Nematodes"),
-    "Unidentifiable" = sum(Prey_group == "Unidentifiable"),
-    "Vegetation" = sum(Prey_group == "Vegetation")
-  )
 kable(frequency.of.occurrence) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
@@ -155,120 +83,63 @@ kable(frequency.of.occurrence) %>%
 # Rate of occurrence
 
 ```{r rateoccurrence, echo = FALSE}
-rate.of.occurrence <- long.prey.df %>% 
-  filter(Measurement == "Weight_g") %>% 
-  group_by(Species) %>% 
-  summarise(
-    "Planerians" = round(sum(Prey_group == "Planerians")/length(unique(ID)),3),
-    "Isopods" = round(sum(Prey_group == "Isopods")/length(unique(ID)),3),
-    "Amphipods" = round(sum(Prey_group == "Amphipods")/length(unique(ID)),3),
-    "Bivalves" = round(sum(Prey_group == "Bivalves")/length(unique(ID)),3),
-    "Oligochaets" = round(sum(Prey_group == "Oligochaets")/length(unique(ID)),3),
-    "Insects" = round(sum(Prey_group == "Insects")/length(unique(ID)),3),
-    "Vertebrate" = round(sum(Prey_group == "Vertebrate")/length(unique(ID)),3),
-    "Chironomid" = round(sum(Prey_group == "Chironomid")/length(unique(ID)),3),
-    "Mysid" = round(sum(Prey_group == "Mysid")/length(unique(ID)),3),
-    "Fish" = round(sum(Prey_group == "Fish")/length(unique(ID)),3),
-    "Nematodes" = round(sum(Prey_group == "Nematodes")/length(unique(ID)),3),
-    "Unidentifiable" = round(sum(Prey_group == "Unidentifiable")/length(unique(ID)),3),
-    "Vegetation" = round(sum(Prey_group == "Vegetation")/length(unique(ID)),3)
-  )
 kable(rate.of.occurrence) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
+
+# Constitution of diet by prey type
+
+```{r dietconstitution, echo = FALSE}
+ggplot(df3, aes(x = year_collected, y = Wt.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_wrap(vars(Species), nrow = 2)
+
+ggplot(df6, aes(x = year_collected, y = Count.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_wrap(vars(Species), nrow = 2)
+
+ggplot(df9, aes(x = year_collected, y = Occurrence.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_wrap(vars(Species), nrow = 2)
+
+ggplot(df12, aes(x = year_collected, y = Percent.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_wrap(vars(Species), nrow = 2)
+
 ```
 
 # Diversity & Evenness
 ## Diversity indices
 
-```{r diversityindices, echo = FALSE}
-diversity.index.counts <- long.prey.df %>% 
-  filter(Measurement == "Count") %>% 
-  group_by(spp_ID, Species, ID) %>% 
-  summarise(
-    "Shannon" = diversity(Value),
-    "Simpson" = diversity(Value, index = "simpson"),
-    "InvSimpson" = diversity(Value, index = "invsimpson")
-  )
+```{r diversityindices, include = FALSE}
 kable(diversity.index.counts) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-diversity.index.percents <- long.prey.df %>% 
-  filter(Measurement == "Relative_percent") %>% 
-  group_by(spp_ID, Species, ID) %>% 
-  summarise(
-    "Shannon" = diversity(Value),
-    "Simpson" = diversity(Value, index = "simpson"),
-    "InvSimpson" = diversity(Value, index = "invsimpson")
-  )
 kable(diversity.index.percents) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-diversity.index.weights <- long.prey.df %>% 
-  filter(Measurement == "Weight_g") %>% 
-  group_by(spp_ID, Species, ID) %>% 
-  summarise(
-    "Shannon" = diversity(Value),
-    "Simpson" = diversity(Value, index = "simpson"),
-    "InvSimpson" = diversity(Value, index = "invsimpson")
-  )
 kable(diversity.index.weights) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
 
 ## Evenness index
 
-```{r evennessindex, echo = FALSE}
-H.max.counts <- diversity.index.counts %>% 
-  group_by(Species) %>% 
-  summarise(
-    "H.max" = max(Shannon)
-  )
+```{r evennessindex, include = FALSE}
 kable(H.max.counts) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-evenness.index.counts <- diversity.index.counts %>% 
-  summarise(
-    "evenness" = ifelse(Species == "ARCS", Shannon/H.max.counts$H.max[1], 
-                        ifelse(Species == "BDWF", Shannon/H.max.counts$H.max[2],
-                               ifelse(Species == "HBWF", Shannon/H.max.counts$H.max[3],
-                                      Shannon/H.max.counts$H.max[4]))) 
-  )
 kable(evenness.index.counts) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-H.max.weights <- diversity.index.weights %>% 
-  group_by(Species) %>% 
-  summarise(
-    "H.max" = max(Shannon)
-  )
 kable(H.max.weights) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-evenness.index.weights <- diversity.index.weights %>% 
-  summarise(
-    "evenness" = ifelse(Species == "ARCS", Shannon/H.max.weights$H.max[1], 
-                        ifelse(Species == "BDWF", Shannon/H.max.weights$H.max[2],
-                               ifelse(Species == "HBWF", Shannon/H.max.weights$H.max[3],
-                                      Shannon/H.max.weights$H.max[4]))) 
-  )
 kable(evenness.index.weights) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-H.max.percents <- diversity.index.percents %>% 
-  group_by(Species) %>% 
-  summarise(
-    "H.max" = max(Shannon)
-  )
 kable(H.max.percents) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 
-evenness.index.percents <- diversity.index.percents %>% 
-  summarise(
-    "evenness" = ifelse(Species == "ARCS", Shannon/H.max.percents$H.max[1], 
-                        ifelse(Species == "BDWF", Shannon/H.max.percents$H.max[2],
-                               ifelse(Species == "HBWF", Shannon/H.max.percents$H.max[3],
-                                      Shannon/H.max.percents$H.max[4]))) 
-  )
 kable(evenness.index.percents) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
@@ -276,14 +147,6 @@ kable(evenness.index.percents) %>%
 ## Summarized Diversity/Evenness indices
 
 ```{r summarizeddiveven, echo = FALSE}
-summarized.diversity.evenness <- merge(diversity.index.counts, evenness.index.counts) %>% 
-  group_by(Species) %>% 
-  summarise(
-    mean.Shannon = mean(Shannon),
-    mean.Simpson = mean(Simpson),
-    mean.invSimpson = mean(InvSimpson),
-    mean.Evenness = mean(evenness),
-  )
 kable(summarized.diversity.evenness) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
@@ -292,217 +155,36 @@ kable(summarized.diversity.evenness) %>%
 # Diet Overlap
 ## Prey count
 
-```{r schoenercount, echo = FALSE}
-long.prey.df %>% 
-  filter(Measurement == "Count") %>% 
-  group_by(Species) %>% 
-  summarise(
-    sum(Value)
-  )
-# ARCS = 2451, BDWF = 1632, HBWF = 2842, LSCS = 4308
-
-total.prey.count <- long.prey.df %>% 
-  filter(Measurement == "Count") %>% 
-  group_by(Species, Prey_group) %>% 
-  summarise(
-    "Total_prey_count" = sum(Value),
-    "Prey_count_percent" = unique(ifelse(Species == "ARCS", Total_prey_count/2451,
-                                         ifelse(Species == "BDWF", Total_prey_count/1632,
-                                                ifelse(Species == "HBWF", Total_prey_count/2842,
-                                                       Total_prey_count/4308))))
-  )
+```{r schoenercount1, include = FALSE}
 kable(total.prey.count) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
 
-ARCS.BDWF.count <- total.prey.count %>% 
-  filter(Species == "ARCS" | Species == "BDWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
-  )
-ARCS.HBWF.count <- total.prey.count %>% 
-  filter(Species == "ARCS" | Species == "HBWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
-  )
-ARCS.LSCS.count <- total.prey.count %>% 
-  filter(Species == "ARCS" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
-  )
-BDWF.HBWF.count <- total.prey.count %>% 
-  filter(Species == "BDWF" | Species == "HBWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
-  )
-BDWF.LSCS.count <- total.prey.count %>% 
-  filter(Species == "BDWF" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
-  )
-HBWF.LSCS.count <- total.prey.count %>% 
-  filter(Species == "HBWF" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
-  )
-prey.count.schoener <- merge(ARCS.BDWF.count, merge(ARCS.HBWF.count, merge(ARCS.LSCS.count, merge(BDWF.HBWF.count, merge(BDWF.LSCS.count, HBWF.LSCS.count, all = T), all = T), all = T), all = T), all = T)
-
-schoener.index.count <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "schoener.index.count" = rep(NA,6))
-
-i=1
-for (i in 1:6) {
-  schoener.index.count[i,2] <- 1 - 0.5*sum(prey.count.schoener[,i+1], na.rm = T)
-}
+```{r schoenercount2, echo = FALSE}
 kable(schoener.index.count) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
 
 ## Prey weight
 
-```{r schoenerweight, echo = FALSE}
-long.prey.df %>% 
-  filter(Measurement == "Weight_g") %>% 
-  group_by(Species) %>% 
-  summarise(
-    sum(Value)
-  )
-# ARCS = 16.7587, BDWF = 10.5100, HBWF = 54.5300, LSCS = 29.3190
-
-total.prey.weight <- long.prey.df %>% 
-  filter(Measurement == "Weight_g") %>% 
-  group_by(Species, Prey_group) %>% 
-  summarise(
-    "Total_prey_weight" = sum(Value),
-    "Prey_weight_percent" = unique(ifelse(Species == "ARCS", Total_prey_weight/16.7587,
-                                          ifelse(Species == "BDWF", Total_prey_weight/10.51,
-                                                 ifelse(Species == "HBWF", Total_prey_weight/54.53,
-                                                        Total_prey_weight/29.319))))
-  )
+```{r schoenerweight1, include = FALSE}
 kable(total.prey.weight) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
 
-
-ARCS.BDWF.weight <- total.prey.weight %>% 
-  filter(Species == "ARCS" | Species == "BDWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
-  )
-ARCS.HBWF.weight <- total.prey.weight %>% 
-  filter(Species == "ARCS" | Species == "HBWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
-  )
-ARCS.LSCS.weight <- total.prey.weight %>% 
-  filter(Species == "ARCS" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
-  )
-BDWF.HBWF.weight <- total.prey.weight %>% 
-  filter(Species == "BDWF" | Species == "HBWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
-  )
-BDWF.LSCS.weight <- total.prey.weight %>% 
-  filter(Species == "BDWF" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
-  )
-HBWF.LSCS.weight <- total.prey.weight %>% 
-  filter(Species == "HBWF" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
-  )
-prey.weight.schoener <- merge(ARCS.BDWF.weight, merge(ARCS.HBWF.weight, merge(ARCS.LSCS.weight, merge(BDWF.HBWF.weight, merge(BDWF.LSCS.weight, HBWF.LSCS.weight, all = T), all = T), all = T), all = T), all = T)
-
-schoener.index.weight <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "schoener.index.weight" = rep(NA,6))
-
-i=1
-for (i in 1:6) {
-  schoener.index.weight[i,2] <- 1 - 0.5*sum(prey.weight.schoener[,i+1], na.rm = T)
-}
+```{r schoenerweight2, echo = FALSE}
 kable(schoener.index.weight) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
 
 ## Prey relative percent
 
-```{r schoenerpercent, echo = FALSE}
-long.prey.df %>% 
-  filter(Measurement == "Relative_percent") %>% 
-  group_by(Species) %>% 
-  summarise(
-    sum(Value)
-  )
-# ARCS = 4501, BDWF = 2470, HBWF = 4577, LSCS = 5510
-
-total.prey.percent <- long.prey.df %>% 
-  filter(Measurement == "Relative_percent") %>% 
-  group_by(Species, Prey_group) %>% 
-  summarise(
-    "Total_prey_percent" = sum(Value),
-    "Prey_percent_percent" = unique(ifelse(Species == "ARCS", Total_prey_percent/4501,
-                                           ifelse(Species == "BDWF", Total_prey_percent/2470,
-                                                  ifelse(Species == "HBWF", Total_prey_percent/4577,
-                                                         Total_prey_percent/5510))))
-  )
+```{r schoenerpercent1, include = FALSE}
 kable(total.prey.percent) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
 
-ARCS.BDWF.percent <- total.prey.percent %>% 
-  filter(Species == "ARCS" | Species == "BDWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
-  )
-ARCS.HBWF.percent <- total.prey.percent %>% 
-  filter(Species == "ARCS" | Species == "HBWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
-  )
-ARCS.LSCS.percent <- total.prey.percent %>% 
-  filter(Species == "ARCS" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
-  )
-BDWF.HBWF.percent <- total.prey.percent %>% 
-  filter(Species == "BDWF" | Species == "HBWF") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
-  )
-BDWF.LSCS.percent <- total.prey.percent %>% 
-  filter(Species == "BDWF" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
-  )
-HBWF.LSCS.percent <- total.prey.percent %>% 
-  filter(Species == "HBWF" | Species == "LSCS") %>% 
-  group_by(Prey_group) %>% 
-  summarise(
-    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
-  )
-prey.percent.schoener <- merge(ARCS.BDWF.percent, merge(ARCS.HBWF.percent, merge(ARCS.LSCS.percent, merge(BDWF.HBWF.percent, merge(BDWF.LSCS.percent, HBWF.LSCS.percent, all = T), all = T), all = T), all = T), all = T)
-
-schoener.index.percent <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "schoener.index.percent" = rep(NA,6))
-
-i=1
-for (i in 1:6) {
-  schoener.index.percent[i,2] <- 1 - 0.5*sum(prey.percent.schoener[,i+1], na.rm = T)
-}
+```{r schoenerpercent2, echo = FALSE}
 kable(schoener.index.percent) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
@@ -510,20 +192,6 @@ kable(schoener.index.percent) %>%
 ## Summarized Schoener index
 
 ```{r summarizedschoener, echo = FALSE}
-combined.schoener.index <- merge(schoener.index.count, merge(schoener.index.weight, schoener.index.percent))
 kable(combined.schoener.index) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
-```
-
-# Modeling
-## GLM
-
-```{r glmmodel, echo = FALSE}
-
-```
-
-## NMDS Ordination
-
-```{r ordination, echo = FALSE}
-
 ```

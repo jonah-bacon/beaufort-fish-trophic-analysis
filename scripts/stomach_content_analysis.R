@@ -13,6 +13,9 @@ library(vegan)
 # Load data ---------------------------------------------------------------
 
 stomach.df <- read.csv("data/Stomach_contents.csv", skip = 1, header = T)
+# save(stomach.df, file = 
+#        "data/stomach_content.Rdata")
+# load(here::here("C:/Users/Bacon/Downloads/beaufort-fish-trophic-analysis/data/stomach_content.Rdata"))
 
 stomach.df <- stomach.df %>% 
   separate(spp_ID, into = c("Species", "ID"), sep = "_", remove = FALSE)
