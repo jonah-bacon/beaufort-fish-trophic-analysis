@@ -116,6 +116,12 @@ stomachs.w.prey <- prey.presence %>%
     "Proportion" = sum(Prey_present > 0)/length(Prey_present))
 stomachs.w.prey
 
+stomachs.w.prey %>% 
+  gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
+ggplot() +
+  geom_col(aes(x = year_collected, y = Value, fill = Presence)) +
+  facet_wrap(vars(Species)) +
+  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE))
 
 # Average fullness --------------------------------------------------------
 
@@ -136,6 +142,22 @@ average.weight <- prey.presence %>%
   summarise("Average_weight_g" = mean(Total_contents_weight_g, na.rm = T))
 average.weight
 
+ggplot(prey.presence) +
+  geom_boxplot(aes(x = year_collected, y = log(Total_contents_weight_g)), outlier.shape = NA) +
+  geom_jitter(aes(x = year_collected, y = log(Total_contents_weight_g)), color = "black", alpha = 0.9) +
+  facet_wrap(vars(Species))
+
+ggplot(prey.presence) +
+  geom_boxplot(aes(x = year_collected, y = Total_contents_weight_g), outlier.shape = NA) +
+  geom_jitter(aes(x = year_collected, y = Total_contents_weight_g), color = "black", alpha = 0.9) +
+  facet_wrap(vars(Species)) +
+  scale_y_continuous(limits = c(0,5))
+
+ggplot(prey.presence) +
+  geom_histogram(aes(x = Total_contents_weight_g), col = "white") +
+  facet_grid(rows = vars(Species), cols = vars(year_collected)) +
+  scale_x_continuous(limits = c(0,5)) +
+  scale_y_continuous(limits = c(0,14), breaks = seq(0,14,2))
 
 # Frequency of occurrence --------------------------------------------------
 
