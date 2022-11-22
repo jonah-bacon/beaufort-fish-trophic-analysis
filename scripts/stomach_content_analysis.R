@@ -13,9 +13,6 @@ library(vegan)
 # Load data ---------------------------------------------------------------
 
 stomach.df <- read.csv("data/Stomach_contents.csv", skip = 1, header = T)
-save(stomach.df, file = 
-       "data/stomach_content.Rdata")
-load(here::here("C:/Users/Bacon/Downloads/beaufort-fish-trophic-analysis/data/stomach_content.Rdata"))
 
 stomach.df <- stomach.df %>% 
   separate(spp_ID, into = c("Species", "ID"), sep = "_", remove = FALSE)
@@ -608,6 +605,11 @@ schoener.index.percent
 combined.schoener.index <- merge(schoener.index.count, merge(schoener.index.weight, schoener.index.percent))
 combined.schoener.index
 
+
+
+# Save RData file ---------------------------------------------------------
+
+save.image(file = "data/stomach_content_workspace.RData")
 
 # ANOVA for differences in diet by predator -------------------------------
 
