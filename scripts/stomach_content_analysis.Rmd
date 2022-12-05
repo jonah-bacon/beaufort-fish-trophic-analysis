@@ -36,10 +36,13 @@ kable(stomachs.w.prey) %>%
 
 stomachs.w.prey %>% 
   gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
-ggplot() +
-  geom_col(aes(x = year_collected, y = Value, fill = Presence)) +
+ggplot(aes(x = year_collected, y = Value, fill = Presence, label = Value)) +
+  geom_col() +
+  geom_text(size = 5, position = position_stack(vjust = 0.5)) +
   facet_wrap(vars(Species)) +
-  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE))
+  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE)) +
+  ylab("Number of stomachs") +
+  xlab("Year collected")
 ```
 
 # Average fullness
@@ -58,19 +61,25 @@ kable(average.weight) %>%
 ggplot(prey.presence) +
   geom_boxplot(aes(x = year_collected, y = log(Total_contents_weight_g)), outlier.shape = NA) +
   geom_jitter(aes(x = year_collected, y = log(Total_contents_weight_g)), color = "black", alpha = 0.9) +
-  facet_wrap(vars(Species))
+  facet_wrap(vars(Species)) +
+  ylab("Log(Total stomach contents weight)") +
+  xlab("Year collected")
 
 ggplot(prey.presence) +
   geom_boxplot(aes(x = year_collected, y = Total_contents_weight_g), outlier.shape = NA) +
   geom_jitter(aes(x = year_collected, y = Total_contents_weight_g), color = "black", alpha = 0.9) +
   facet_wrap(vars(Species)) +
-  scale_y_continuous(limits = c(0,5))
+  scale_y_continuous(limits = c(0,5)) +
+  ylab("Total stomach contents weight") +
+  xlab("Year collected")
 
 ggplot(prey.presence) +
   geom_histogram(aes(x = Total_contents_weight_g), col = "white") +
   facet_grid(rows = vars(Species), cols = vars(year_collected)) +
   scale_x_continuous(limits = c(0,5)) +
-  scale_y_continuous(limits = c(0,14), breaks = seq(0,14,2))
+  scale_y_continuous(limits = c(0,14), breaks = seq(0,14,2)) +
+  ylab("Stomachs count") +
+  xlab("Total stomach contents weight")
 ```
 
 # Frequency of occurrence
@@ -87,26 +96,96 @@ kable(rate.of.occurrence) %>%
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
 
-# Constitution of diet by prey type
+# Constitution of diet by year
 
-```{r dietconstitution, echo = FALSE}
-ggplot(df3, aes(x = year_collected, y = Wt.percent)) +
+## Count
+```{r dietconstitutioncount, echo = FALSE}
+ggplot(df18, aes(x = year_collected, y = Count.percent)) +
   geom_col(aes(fill = Prey_group)) +
-  facet_wrap(vars(Species), nrow = 2)
+  facet_wrap(vars(Species), nrow = 2) +
+  scale_fill_discrete(name = "Prey group") +
+  xlab("Year collected") +
+  ylab("Percent of diet by count")
+```
 
-ggplot(df6, aes(x = year_collected, y = Count.percent)) +
+## Weight
+```{r dietconstitutionweight, echo = FALSE}
+ggplot(df15, aes(x = year_collected, y = Wt.percent)) +
   geom_col(aes(fill = Prey_group)) +
-  facet_wrap(vars(Species), nrow = 2)
+  facet_wrap(vars(Species), nrow = 2) +
+  scale_fill_discrete(name = "Prey group") +
+  xlab("Year collected") +
+  ylab("Percent of diet by weight")
+```
 
-ggplot(df9, aes(x = year_collected, y = Occurrence.percent)) +
+## Relative percent
+```{r dietconstitutionpercent, echo = FALSE}
+ggplot(df24, aes(x = year_collected, y = Percent.percent)) +
   geom_col(aes(fill = Prey_group)) +
-  facet_wrap(vars(Species), nrow = 2)
-
-ggplot(df12, aes(x = year_collected, y = Percent.percent)) +
-  geom_col(aes(fill = Prey_group)) +
-  facet_wrap(vars(Species), nrow = 2)
+  facet_wrap(vars(Species), nrow = 2) +
+  scale_fill_discrete(name = "Prey group") +
+  xlab("Year collected") +
+  ylab("Percent of diet by relative percent")
 
 ```
+
+## Occurrence
+```{r dietconstitutionoccurrence, echo = FALSE}
+ggplot(df21, aes(x = year_collected, y = Occurrence.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_wrap(vars(Species), nrow = 2) +
+  scale_fill_discrete(name = "Prey group") +
+  xlab("Year collected") +
+  ylab("Percent of diet by frequency of occurrence")
+```
+
+
+# Constitution of diet by size
+
+## Count
+```{r dietconstitutioncount2, echo = FALSE}
+ggplot(df6, aes(x = lg_group, y = Count.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_grid(rows = vars(Species), cols = vars(year_collected)) +
+  scale_fill_discrete(name = "Prey group") +
+  scale_x_continuous(limits = c(3,11), breaks = seq(1:11)) +
+  xlab("Length group (FL * 50)") +
+  ylab("Percent of diet by count")
+```
+
+## Weight
+```{r dietconstitutionweight2, echo = FALSE}
+ggplot(df3, aes(x = lg_group, y = Wt.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_grid(rows = vars(Species), cols = vars(year_collected)) +
+  scale_fill_discrete(name = "Prey group") +
+  scale_x_continuous(limits = c(1,11), breaks = seq(1:11)) +
+  xlab("Length group (FL * 50)") +
+  ylab("Percent of diet by weight")
+```
+
+## Relative percent
+```{r dietconstitutionpercent2, echo = FALSE}
+ggplot(df12, aes(x = lg_group, y = Percent.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_grid(rows = vars(Species), cols = vars(year_collected)) +
+  scale_fill_discrete(name = "Prey group") +
+  scale_x_continuous(limits = c(1,11), breaks = seq(1:11)) +
+  xlab("Length group (FL * 50)") +
+  ylab("Percent of diet by relative percent")
+```
+
+## Occurrence
+```{r dietconstitutionoccurrence2, echo = FALSE}
+ggplot(df9, aes(x = lg_group, y = Occurrence.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_grid(rows = vars(Species), cols = vars(year_collected)) +
+  scale_fill_discrete(name = "Prey group") +
+  scale_x_continuous(limits = c(1,11), breaks = seq(1:11)) +
+  xlab("Length group (FL * 50)") +
+  ylab("Percent of diet by frequency of occurrence")
+```
+
 
 # Diversity & Evenness
 ## Diversity indices
