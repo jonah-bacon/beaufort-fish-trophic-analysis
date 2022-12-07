@@ -123,6 +123,15 @@ ggplot() +
   facet_wrap(vars(Species)) +
   scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE))
 
+stomachs.w.prey %>% 
+  gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
+ggplot(aes(x = year_collected, y = Value, fill = Presence, label = Value)) +
+  geom_col() +
+  facet_wrap(vars(Species)) +
+  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE)) +
+  ylab("Number of stomachs") +
+  geom_text(size = 5, position = position_stack(vjust = 0.5))
+
 # Average fullness --------------------------------------------------------
 
 average.fullness <- prey.presence %>% 
@@ -162,6 +171,7 @@ ggplot(prey.presence) +
 # Frequency of occurrence --------------------------------------------------
 
 long.prey.df <- rbind(prey.count, prey.weight, prey.percent)
+long.prey.df$lg_group = floor(long.prey.df$length_mm/50)
 
 frequency.of.occurrence <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
@@ -212,18 +222,34 @@ rate.of.occurrence
 ## Weight
 df1 <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
-  group_by(Species, year_collected) %>% 
+  group_by(Species, year_collected, lg_group) %>% 
   summarise(
     "Total.Stomach.Wt" = sum(Value)
     )
 df2 <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
+  group_by(Species, year_collected, Prey_group, lg_group) %>% 
+  summarise(
+    "Total.Prey.Wt" = sum(Value)
+  )
+df3 <- merge(df1,df2, by = c("Species", "year_collected", "lg_group"))
+df3$Wt.percent <- df3$Total.Prey.Wt/df3$Total.Stomach.Wt
+
+df13 <- long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    "Total.Stomach.Wt" = sum(Value)
+  )
+df14 <- long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
   group_by(Species, year_collected, Prey_group) %>% 
   summarise(
     "Total.Prey.Wt" = sum(Value)
   )
-df3 <- merge(df1,df2, by = c("Species", "year_collected"))
-df3$Wt.percent <- df3$Total.Prey.Wt/df3$Total.Stomach.Wt
+df15 <- merge(df13,df14, by = c("Species", "year_collected"))
+df15$Wt.percent <- df15$Total.Prey.Wt/df15$Total.Stomach.Wt
+
 ggplot(df3, aes(x = year_collected, y = Wt.percent)) +
   geom_col(aes(fill = Prey_group)) +
   facet_wrap(vars(Species), nrow = 2)
@@ -232,18 +258,34 @@ ggplot(df3, aes(x = year_collected, y = Wt.percent)) +
 ## Count
 df4 <- long.prey.df %>% 
   filter(Measurement == "Count") %>% 
-  group_by(Species, year_collected) %>% 
+  group_by(Species, year_collected, lg_group) %>% 
   summarise(
     "Total.Stomach.Count" = sum(Value)
   )
 df5 <- long.prey.df %>% 
   filter(Measurement == "Count") %>% 
+  group_by(Species, year_collected, Prey_group, lg_group) %>% 
+  summarise(
+    "Total.Prey.Count" = sum(Value)
+  )
+df6 <- merge(df4,df5, by = c("Species", "year_collected", "lg_group"))
+df6$Count.percent <- df6$Total.Prey.Count/df6$Total.Stomach.Count
+
+df16 <- long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    "Total.Stomach.Count" = sum(Value)
+  )
+df17 <- long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
   group_by(Species, year_collected, Prey_group) %>% 
   summarise(
     "Total.Prey.Count" = sum(Value)
   )
-df6 <- merge(df4,df5, by = c("Species", "year_collected"))
-df6$Count.percent <- df6$Total.Prey.Count/df6$Total.Stomach.Count
+df18 <- merge(df16,df17, by = c("Species", "year_collected"))
+df18$Count.percent <- df18$Total.Prey.Count/df18$Total.Stomach.Count
+
 ggplot(df6, aes(x = year_collected, y = Count.percent)) +
   geom_col(aes(fill = Prey_group)) +
   facet_wrap(vars(Species), nrow = 2)
@@ -252,18 +294,34 @@ ggplot(df6, aes(x = year_collected, y = Count.percent)) +
 ## Occurrence
 df7 <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
-  group_by(Species, year_collected) %>% 
+  group_by(Species, year_collected, lg_group) %>% 
   summarise(
     "Total_N_stomachs_w_prey" = length(unique(spp_ID))
   )
 df8 <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
+  group_by(Species, year_collected, Prey_group, lg_group) %>% 
+  summarise(
+    "N_stomachs_w_prey" = length(unique(spp_ID))
+  )
+df9 <- merge(df7,df8, by = c("Species", "year_collected", "lg_group"))
+df9$Occurrence.percent <- df9$N_stomachs_w_prey/df9$Total_N_stomachs_w_prey
+
+df19 <- long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    "Total_N_stomachs_w_prey" = length(unique(spp_ID))
+  )
+df20 <- long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
   group_by(Species, year_collected, Prey_group) %>% 
   summarise(
     "N_stomachs_w_prey" = length(unique(spp_ID))
   )
-df9 <- merge(df7,df8, by = c("Species", "year_collected"))
-df9$Occurrence.percent <- df9$N_stomachs_w_prey/df9$Total_N_stomachs_w_prey
+df21 <- merge(df19,df20, by = c("Species", "year_collected"))
+df21$Occurrence.percent <- df21$N_stomachs_w_prey/df21$Total_N_stomachs_w_prey
+
 ggplot(df9, aes(x = year_collected, y = Occurrence.percent)) +
   geom_col(aes(fill = Prey_group)) +
   facet_wrap(vars(Species), nrow = 2)
@@ -272,23 +330,41 @@ ggplot(df9, aes(x = year_collected, y = Occurrence.percent)) +
 ## Relative percent by volume
 df10 <- long.prey.df %>% 
   filter(Measurement == "Relative_percent") %>% 
-  group_by(Species, year_collected) %>% 
+  group_by(Species, year_collected, lg_group) %>% 
   summarise(
     "Total.Stomach.Percent" = sum(Value)
   )
 df11 <- long.prey.df %>% 
   filter(Measurement == "Relative_percent") %>% 
-  group_by(Species, year_collected, Prey_group) %>% 
+  group_by(Species, year_collected, Prey_group, lg_group) %>% 
   summarise(
     "Total.Prey.Percent" = sum(Value)
   )
-df12 <- merge(df10,df11, by = c("Species", "year_collected"))
+df12 <- merge(df10,df11, by = c("Species", "year_collected", "lg_group"))
 df12$Percent.percent <- df12$Total.Prey.Percent/df12$Total.Stomach.Percent
 ggplot(df12, aes(x = year_collected, y = Percent.percent)) +
   geom_col(aes(fill = Prey_group)) +
   facet_wrap(vars(Species), nrow = 2)
 
+df22 <- long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    "Total.Stomach.Percent" = sum(Value)
+  )
+df23 <- long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  group_by(Species, year_collected, Prey_group
+           ) %>% 
+  summarise(
+    "Total.Prey.Percent" = sum(Value)
+  )
+df24 <- merge(df22,df23, by = c("Species", "year_collected"))
+df24$Percent.percent <- df24$Total.Prey.Percent/df24$Total.Stomach.Percent
 
+ggplot(df12, aes(x = year_collected, y = Percent.percent)) +
+  geom_col(aes(fill = Prey_group)) +
+  facet_wrap(vars(Species), nrow = 2)
 
 
 
@@ -304,6 +380,16 @@ diversity.index.counts <- long.prey.df %>%
   )
 diversity.index.counts
 
+diversity.index.counts.year <- long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  group_by(spp_ID, Species, ID, year_collected) %>% 
+  summarise(
+    "Shannon" = diversity(Value),
+    "Simpson" = diversity(Value, index = "simpson"),
+    "InvSimpson" = diversity(Value, index = "invsimpson")
+  )
+diversity.index.counts.year
+
 diversity.index.percents <- long.prey.df %>% 
   filter(Measurement == "Relative_percent") %>% 
   group_by(spp_ID, Species, ID) %>% 
@@ -314,6 +400,16 @@ diversity.index.percents <- long.prey.df %>%
   )
 diversity.index.percents
 
+diversity.index.percents.year <- long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  group_by(spp_ID, Species, ID, year_collected) %>% 
+  summarise(
+    "Shannon" = diversity(Value),
+    "Simpson" = diversity(Value, index = "simpson"),
+    "InvSimpson" = diversity(Value, index = "invsimpson")
+  )
+diversity.index.percents.year
+
 diversity.index.weights <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
   group_by(spp_ID, Species, ID) %>% 
@@ -323,6 +419,16 @@ diversity.index.weights <- long.prey.df %>%
     "InvSimpson" = diversity(Value, index = "invsimpson")
   )
 diversity.index.weights
+
+diversity.index.weights.year <- long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  group_by(spp_ID, Species, ID, year_collected) %>% 
+  summarise(
+    "Shannon" = diversity(Value),
+    "Simpson" = diversity(Value, index = "simpson"),
+    "InvSimpson" = diversity(Value, index = "invsimpson")
+  )
+diversity.index.weights.year
 
 # Evenness index ----------------------------------------------------------
 
@@ -375,9 +481,68 @@ evenness.index.percents <- diversity.index.percents %>%
 evenness.index.percents
 
 
+## By year:
+
+H.max.counts.year <- diversity.index.counts.year %>% 
+  group_by(Species,year_collected) %>% 
+  summarise(
+    "H.max" = max(Shannon)
+  )
+H.max.counts.year
+
+evenness.index.counts.year <- diversity.index.counts.year %>% 
+  summarise(
+    "evenness" = ifelse(Species == "ARCS" & year_collected == "2021", Shannon/H.max.counts.year$H.max[1], 
+                  ifelse(Species == "ARCS" & year_collected == "2022", Shannon/H.max.counts.year$H.max[2],
+                    ifelse(Species == "BDWF"  & year_collected == "2021", Shannon/H.max.counts.year$H.max[3],
+                      ifelse(Species == "BDWF"  & year_collected == "2022", Shannon/H.max.counts.year$H.max[4],
+                         ifelse(Species == "HBWF"  & year_collected == "2021", Shannon/H.max.counts.year$H.max[5],
+                           ifelse(Species == "HBWF"  & year_collected == "2022", Shannon/H.max.counts.year$H.max[6],
+                                      Shannon/H.max.counts.year$H.max[7])))))) 
+  )
+evenness.index.counts.year
+
+H.max.weights.year <- diversity.index.weights.year %>% 
+  group_by(Species,year_collected) %>% 
+  summarise(
+    "H.max" = max(Shannon)
+  )
+H.max.weights.year
+
+evenness.index.weights.year <- diversity.index.weights.year %>% 
+  summarise(
+    "evenness" = ifelse(Species == "ARCS" & year_collected == "2021", Shannon/H.max.weights.year$H.max[1], 
+                        ifelse(Species == "ARCS" & year_collected == "2022", Shannon/H.max.weights.year$H.max[2],
+                               ifelse(Species == "BDWF"  & year_collected == "2021", Shannon/H.max.weights.year$H.max[3],
+                                      ifelse(Species == "BDWF"  & year_collected == "2022", Shannon/H.max.weights.year$H.max[4],
+                                             ifelse(Species == "HBWF"  & year_collected == "2021", Shannon/H.max.weights.year$H.max[5],
+                                                    ifelse(Species == "HBWF"  & year_collected == "2022", Shannon/H.max.weights.year$H.max[6],
+                                                           Shannon/H.max.weights.year$H.max[7])))))) 
+  )
+evenness.index.weights.year
+
+H.max.percents.year <- diversity.index.percents.year %>% 
+  group_by(Species,year_collected) %>% 
+  summarise(
+    "H.max" = max(Shannon)
+  )
+H.max.percents.year
+
+evenness.index.percents.year <- diversity.index.percents.year %>% 
+  summarise(
+    "evenness" = ifelse(Species == "ARCS" & year_collected == "2021", Shannon/H.max.percents.year$H.max[1], 
+                        ifelse(Species == "ARCS" & year_collected == "2022", Shannon/H.max.percents.year$H.max[2],
+                               ifelse(Species == "BDWF"  & year_collected == "2021", Shannon/H.max.percents.year$H.max[3],
+                                      ifelse(Species == "BDWF"  & year_collected == "2022", Shannon/H.max.percents.year$H.max[4],
+                                             ifelse(Species == "HBWF"  & year_collected == "2021", Shannon/H.max.percents.year$H.max[5],
+                                                    ifelse(Species == "HBWF"  & year_collected == "2022", Shannon/H.max.percents.year$H.max[6],
+                                                           Shannon/H.max.percents.year$H.max[7])))))) 
+  )
+evenness.index.percents.year
+
 # Summarized diversity and evenness indices -------------------------------
 
-summarized.diversity.evenness <- merge(diversity.index.counts, evenness.index.counts) %>% 
+summarized.diversity.evenness.counts <- merge(diversity.index.counts, evenness.index.counts) %>% 
   group_by(Species) %>% 
   summarise(
     mean.Shannon = mean(Shannon),
@@ -385,7 +550,57 @@ summarized.diversity.evenness <- merge(diversity.index.counts, evenness.index.co
     mean.invSimpson = mean(InvSimpson),
     mean.Evenness = mean(evenness),
   )
-summarized.diversity.evenness
+summarized.diversity.evenness.counts
+
+summarized.diversity.evenness.weights <- merge(diversity.index.weights, evenness.index.weights) %>% 
+  group_by(Species) %>% 
+  summarise(
+    mean.Shannon = mean(Shannon),
+    mean.Simpson = mean(Simpson),
+    mean.invSimpson = mean(InvSimpson),
+    mean.Evenness = mean(evenness),
+  )
+summarized.diversity.evenness.weights
+
+summarized.diversity.evenness.percents <- merge(diversity.index.percents, evenness.index.percents) %>% 
+  group_by(Species) %>% 
+  summarise(
+    mean.Shannon = mean(Shannon),
+    mean.Simpson = mean(Simpson),
+    mean.invSimpson = mean(InvSimpson),
+    mean.Evenness = mean(evenness),
+  )
+summarized.diversity.evenness.percents
+
+summarized.diversity.evenness.counts.year <- merge(diversity.index.counts.year, evenness.index.counts.year) %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    mean.Shannon = mean(Shannon),
+    mean.Simpson = mean(Simpson),
+    mean.invSimpson = mean(InvSimpson),
+    mean.Evenness = mean(evenness),
+  )
+summarized.diversity.evenness.counts.year
+
+summarized.diversity.evenness.weights.year <- merge(diversity.index.weights.year, evenness.index.weights.year) %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    mean.Shannon = mean(Shannon),
+    mean.Simpson = mean(Simpson),
+    mean.invSimpson = mean(InvSimpson),
+    mean.Evenness = mean(evenness),
+  )
+summarized.diversity.evenness.weights.year
+
+summarized.diversity.evenness.percents.year <- merge(diversity.index.percents.year, evenness.index.percents.year) %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    mean.Shannon = mean(Shannon),
+    mean.Simpson = mean(Simpson),
+    mean.invSimpson = mean(InvSimpson),
+    mean.Evenness = mean(evenness),
+  )
+summarized.diversity.evenness.percents.year
 
 # Diet overlap ------------------------------------------------------------
 
@@ -600,13 +815,267 @@ for (i in 1:6) {
 schoener.index.percent
 
 
-# Visualize diet by predator species --------------------------------------
-
-
 # Combined Schoener index table -------------------------------------------
 
 combined.schoener.index <- merge(schoener.index.count, merge(schoener.index.weight, schoener.index.percent))
 combined.schoener.index
+
+
+
+
+# Schoener index by prey count by year --------------------------------------------
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    sum(Value)
+  )
+# ARCS 2021 = 2, ARCS 2022 = 2449, BDWF 2021 = 3, BDWF 2022 = 1614, HBWF 2021 = 225, HBWF 2022 = 2617, LSCS 2022 = 4308
+
+total.prey.count2 <- long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  group_by(Species, Prey_group, year_collected) %>% 
+  summarise(
+    "Total_prey_count" = sum(Value),
+    "Prey_count_percent" = unique(ifelse(Species == "ARCS" & year_collected == 2021, Total_prey_count/2,
+                                  ifelse(Species == "ARCS" & year_collected == 2022, Total_prey_count/2449,
+                                  ifelse(Species == "BDWF" & year_collected == 2021, Total_prey_count/3,
+                                  ifelse(Species == "BDWF" & year_collected == 2022, Total_prey_count/1614,
+                                  ifelse(Species == "HBWF" & year_collected == 2021, Total_prey_count/225,
+                                  ifelse(Species == "HBWF" & year_collected == 2022, Total_prey_count/2617,
+                                     Total_prey_count/4308)))))))
+  )
+total.prey.count2
+
+ARCS.BDWF.count2 <- total.prey.count2 %>% 
+  filter(Species == "ARCS" | Species == "BDWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
+  )
+ARCS.HBWF.count2 <- total.prey.count2 %>% 
+  filter(Species == "ARCS" | Species == "HBWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
+  )
+ARCS.LSCS.count2 <- total.prey.count2 %>% 
+  filter(Species == "ARCS" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
+  )
+BDWF.HBWF.count2 <- total.prey.count2 %>% 
+  filter(Species == "BDWF" | Species == "HBWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
+  )
+BDWF.LSCS.count2 <- total.prey.count2 %>% 
+  filter(Species == "BDWF" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
+  )
+HBWF.LSCS.count2 <- total.prey.count2 %>% 
+  filter(Species == "HBWF" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_count_percent[1] - Prey_count_percent[2]), Prey_count_percent)
+  )
+prey.count.schoener2 <- merge(ARCS.BDWF.count2, merge(ARCS.HBWF.count2, merge(ARCS.LSCS.count2, merge(BDWF.HBWF.count2, merge(BDWF.LSCS.count2, HBWF.LSCS.count2, all = T), all = T), all = T), all = T), all = T)
+
+schoener.index.count2021 <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "year" = c(rep("2021", 6)), "schoener.index.count" = rep(NA,6))
+schoener.index.count2021
+schoener.index.count2022 <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "year" = c(rep("2022", 6)), "schoener.index.count" = rep(NA,6))
+schoener.index.count2022
+
+i=1
+for (i in 1:6) {
+  schoener.index.count2021[i,3] <- 1 - 0.5*sum(filter(prey.count.schoener2, year_collected == "2021")[,i+2], na.rm = T)
+}
+schoener.index.count2021
+schoener.index.count2021 <- schoener.index.count2021[-c(3,5,6),]
+
+i=1
+for (i in 1:6) {
+  schoener.index.count2022[i,3] <- 1 - 0.5*sum(filter(prey.count.schoener2, year_collected == "2022")[,i+2], na.rm = T)
+}
+schoener.index.count2022
+schoener.index.count.year <- rbind(schoener.index.count2021, schoener.index.count2022)
+
+# Schoener index by prey weight by year -------------------------------------------
+
+long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    round(sum(Value), 4)
+  )
+# 
+
+total.prey.weight2 <- long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  group_by(Species, Prey_group, year_collected) %>% 
+  summarise(
+    "Total_prey_weight" = sum(Value),
+    "Prey_weight_percent" = unique(ifelse(Species == "ARCS" & year_collected == 2021, Total_prey_weight/0.1460,
+                                         ifelse(Species == "ARCS" & year_collected == 2022, Total_prey_weight/16.613,
+                                                ifelse(Species == "BDWF" & year_collected == 2021, Total_prey_weight/0.2030,
+                                                       ifelse(Species == "BDWF" & year_collected == 2022, Total_prey_weight/10.526,
+                                                              ifelse(Species == "HBWF" & year_collected == 2021, Total_prey_weight/12.958,
+                                                                     ifelse(Species == "HBWF" & year_collected == 2022, Total_prey_weight/49.795,
+                                                                            Total_prey_weight/30.013)))))))
+  )
+total.prey.weight2
+
+ARCS.BDWF.weight2 <- total.prey.weight2 %>% 
+  filter(Species == "ARCS" | Species == "BDWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
+  )
+ARCS.HBWF.weight2 <- total.prey.weight2 %>% 
+  filter(Species == "ARCS" | Species == "HBWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
+  )
+ARCS.LSCS.weight2 <- total.prey.weight2 %>% 
+  filter(Species == "ARCS" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
+  )
+BDWF.HBWF.weight2 <- total.prey.weight2 %>% 
+  filter(Species == "BDWF" | Species == "HBWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
+  )
+BDWF.LSCS.weight2 <- total.prey.weight2 %>% 
+  filter(Species == "BDWF" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
+  )
+HBWF.LSCS.weight2 <- total.prey.weight2 %>% 
+  filter(Species == "HBWF" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_weight_percent[1] - Prey_weight_percent[2]), Prey_weight_percent)
+  )
+prey.weight.schoener2 <- merge(ARCS.BDWF.weight2, merge(ARCS.HBWF.weight2, merge(ARCS.LSCS.weight2, merge(BDWF.HBWF.weight2, merge(BDWF.LSCS.weight2, HBWF.LSCS.weight2, all = T), all = T), all = T), all = T), all = T)
+
+schoener.index.weight2021 <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "year" = c(rep("2021", 6)), "schoener.index.weight" = rep(NA,6))
+schoener.index.weight2021
+schoener.index.weight2022 <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "year" = c(rep("2022", 6)), "schoener.index.weight" = rep(NA,6))
+schoener.index.weight2022
+
+i=1
+for (i in 1:6) {
+  schoener.index.weight2021[i,3] <- 1 - 0.5*sum(filter(prey.weight.schoener2, year_collected == "2021")[,i+2], na.rm = T)
+}
+schoener.index.weight2021
+schoener.index.weight2021 <- schoener.index.weight2021[-c(3,5,6),]
+
+i=1
+for (i in 1:6) {
+  schoener.index.weight2022[i,3] <- 1 - 0.5*sum(filter(prey.weight.schoener2, year_collected == "2022")[,i+2], na.rm = T)
+}
+schoener.index.weight2022
+schoener.index.weight.year <- rbind(schoener.index.weight2021, schoener.index.weight2022)
+
+
+
+# Schoener index by prey relative percent by year ---------------------------------
+
+long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  group_by(Species, year_collected) %>% 
+  summarise(
+    round(sum(Value), 4)
+  )
+# 
+
+total.prey.percent2 <- long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  group_by(Species, Prey_group, year_collected) %>% 
+  summarise(
+    "Total_prey_percent" = sum(Value),
+    "Prey_percent_percent" = unique(ifelse(Species == "ARCS" & year_collected == 2021, Total_prey_percent/100,
+                                          ifelse(Species == "ARCS" & year_collected == 2022, Total_prey_percent/4400,
+                                                 ifelse(Species == "BDWF" & year_collected == 2021, Total_prey_percent/200,
+                                                        ifelse(Species == "BDWF" & year_collected == 2022, Total_prey_percent/2300,
+                                                               ifelse(Species == "HBWF" & year_collected == 2021, Total_prey_percent/1500,
+                                                                      ifelse(Species == "HBWF" & year_collected == 2022, Total_prey_percent/3100,
+                                                                             Total_prey_percent/5600)))))))
+  )
+total.prey.percent2
+
+ARCS.BDWF.percent2 <- total.prey.percent2 %>% 
+  filter(Species == "ARCS" | Species == "BDWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.BDWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
+  )
+ARCS.HBWF.percent2 <- total.prey.percent2 %>% 
+  filter(Species == "ARCS" | Species == "HBWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
+  )
+ARCS.LSCS.percent2 <- total.prey.percent2 %>% 
+  filter(Species == "ARCS" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "ARCS.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
+  )
+BDWF.HBWF.percent2 <- total.prey.percent2 %>% 
+  filter(Species == "BDWF" | Species == "HBWF") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "BDWF.HBWF" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
+  )
+BDWF.LSCS.percent2 <- total.prey.percent2 %>% 
+  filter(Species == "BDWF" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "BDWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
+  )
+HBWF.LSCS.percent2 <- total.prey.percent2 %>% 
+  filter(Species == "HBWF" | Species == "LSCS") %>% 
+  group_by(Prey_group, year_collected) %>% 
+  summarise(
+    "HBWF.LSCS" = ifelse(length(Prey_group) == 2, abs(Prey_percent_percent[1] - Prey_percent_percent[2]), Prey_percent_percent)
+  )
+prey.percent.schoener2 <- merge(ARCS.BDWF.percent2, merge(ARCS.HBWF.percent2, merge(ARCS.LSCS.percent2, merge(BDWF.HBWF.percent2, merge(BDWF.LSCS.percent2, HBWF.LSCS.percent2, all = T), all = T), all = T), all = T), all = T)
+
+schoener.index.percent2021 <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "year" = c(rep("2021", 6)), "schoener.index.percent" = rep(NA,6))
+schoener.index.percent2021
+schoener.index.percent2022 <- data.frame("Species.interactions" = c("ARCS:BDWF", "ARCS:HBWF","ARCS:LSCS","BDWF:HBWF","BDWF:LSCS", "HBWF:LSCS"), "year" = c(rep("2022", 6)), "schoener.index.percent" = rep(NA,6))
+schoener.index.percent2022
+
+i=1
+for (i in 1:6) {
+  schoener.index.percent2021[i,3] <- 1 - 0.5*sum(filter(prey.percent.schoener2, year_collected == "2021")[,i+2], na.rm = T)
+}
+schoener.index.percent2021
+schoener.index.percent2021 <- schoener.index.percent2021[-c(3,5,6),]
+
+i=1
+for (i in 1:6) {
+  schoener.index.percent2022[i,3] <- 1 - 0.5*sum(filter(prey.percent.schoener2, year_collected == "2022")[,i+2], na.rm = T)
+}
+schoener.index.percent2022
+schoener.index.percent.year <- rbind(schoener.index.percent2021, schoener.index.percent2022)
+
+
+# Combined Schoener index table by year -------------------------------------------
+
+combined.schoener.index.year <- merge(schoener.index.count.year, merge(schoener.index.weight.year, schoener.index.percent.year))
+combined.schoener.index.year
 
 
 
