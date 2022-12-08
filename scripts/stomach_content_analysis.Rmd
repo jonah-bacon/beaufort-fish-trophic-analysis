@@ -274,3 +274,190 @@ kable(schoener.index.percent) %>%
 kable(combined.schoener.index) %>%  
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
+
+# Boxplots of major prey items
+
+## Count
+```{r boxplotcount, echo = FALSE}
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Amphipods")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Count" & Prey_group == "Amphipods")$Value, c(0,0.84))) +
+  scale_y_continuous(breaks = seq(0,70,10), expand = c(0,1)) +
+  scale_fill_jco(labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  ylab("Count") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Chironomid")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_y_continuous(breaks = seq(0,300,50), expand = c(0,1)) +
+  scale_fill_jco(labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Isopods")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Count" & Prey_group == "Isopods")$Value, c(0,0.92))) +
+  scale_y_continuous(breaks = seq(0,40,5), expand = c(0,1)) +
+  scale_fill_jco(labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+    )
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Mysid")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Count" & Prey_group == "Mysid")$Value, c(0,0.85))) +
+  scale_y_continuous(breaks = seq(0,40,5), expand = c(0,1)) +
+  scale_fill_jco(labels = c("Arctic Cisco", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+    )
+```
+
+## Weight
+```{r boxplotweight, echo = FALSE}
+long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  filter(Prey_group %in% c("Amphipods","Chironomid","Isopods","Mysid")) %>%
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Weight_g" & Prey_group %in% c("Amphipods","Chironomid","Isopods","Mysid"))$Value, c(0,0.975))) +
+  scale_y_continuous(breaks = seq(0,2,0.25), expand = c(0,0)) +
+  scale_fill_jco(labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  ylab("Weight (g)") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+```
+
+## Relative percent
+```{r boxplotpercent, echo = FALSE}
+long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  filter(Prey_group %in% c("Amphipods","Mysid","Isopods","Chironomid")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot() +
+  scale_fill_jco(labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_y_continuous(limits = c(0,100), breaks = seq(0,100,10), expand = c(0,1)) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  ylab("Relative Percent") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+```
+
+# GLM models for major prey items
+
+## AIC model selection
+```{r AICmodelselection, echo = FALSE}
+count.dat <- filter(long.prey.df, Measurement == "Count")
+weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0)
+percent.dat <- filter(long.prey.df, Measurement == "Relative_percent")
+
+i=1
+prey <- c("Amphipods","Chironomid","Isopods","Mysid")
+count.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  ct.mod1 <- glm.nb(Value ~ 1, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod2 <- glm.nb(Value ~ 0 + Species, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod3 <- glm.nb(Value ~ 0 + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod4 <- glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod5 <- glm.nb(Value ~ 0 + Species * length_mm, data = count.dat, subset = Prey_group == prey[i])
+  count.aic.df[,i] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
+}
+count.aic.df
+
+i=1
+weight.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  wt.mod1 <- glm(Value ~ 1, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod2 <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod3 <- glm(Value ~ 0 + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod4 <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod5 <- glm(Value ~ 0 + Species * length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  weight.aic.df[,i] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
+}
+weight.aic.df
+
+i=1
+percent.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  pct.mod1 <- glm(Value ~ 1, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod2 <- glm(Value ~ 0 + Species, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod3 <- glm(Value ~ 0 + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod4 <- glm(Value ~ 0 + Species + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod5 <- glm(Value ~ 0 + Species * length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  percent.aic.df[,i] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
+}
+weight.aic.df
+```
