@@ -9,6 +9,13 @@
 library(tidyverse)
 library(ggsci)
 library(vegan)
+library(MASS)
+library(ggrepel)
+
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+species <- c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")
+names(species) <- c("ARCS","BDWF","HBWF","LSCS")
 
 # Load data ---------------------------------------------------------------
 
@@ -109,7 +116,7 @@ prey.percent %>%
 # Stomachs with prey ------------------------------------------------------
 
 stomachs.w.prey <- prey.presence %>% 
-  group_by(Species, year_collected) %>% 
+  group_by(Species) %>% 
   summarise(
     "N_stomachs" = n(),
     "N_stomachs_w_prey" = sum(Prey_present > 0),
@@ -127,10 +134,11 @@ stomachs.w.prey %>%
   gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
 ggplot(aes(x = year_collected, y = Value, fill = Presence, label = Value)) +
   geom_col() +
-  facet_wrap(vars(Species)) +
-  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE)) +
+  facet_wrap(vars(Species), labeller = labeller(Species = species)) +
+  scale_fill_manual(values = cbPalette[c(1,2)], name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = FALSE)) +
   ylab("Number of stomachs") +
-  geom_text(size = 5, position = position_stack(vjust = 0.5))
+  geom_text(size = 5, position = position_stack(vjust = 0.5)) +
+  xlab("Year")
 
 # Average fullness --------------------------------------------------------
 
@@ -198,8 +206,9 @@ frequency.of.occurrence
 
 rate.of.occurrence <- long.prey.df %>% 
   filter(Measurement == "Weight_g") %>% 
-  group_by(Species, year_collected) %>% 
+  group_by(Species) %>% 
   summarise(
+    "n.stomachs" = length(unique(ID)),
     "Planerians" = round(sum(Prey_group == "Planerians")/length(unique(ID)),3),
     "Isopods" = round(sum(Prey_group == "Isopods")/length(unique(ID)),3),
     "Amphipods" = round(sum(Prey_group == "Amphipods")/length(unique(ID)),3),
@@ -1079,9 +1088,173 @@ combined.schoener.index.year
 
 
 
+
+# Levin's niche breadth ---------------------------------------------------
+
+count.dat <- filter(long.prey.df, Measurement == "Count" & spp_ID != "ARCS_106")
+levins.df <- as.matrix(count.dat %>% 
+  pivot_wider(id_cols = Prey_group, names_from = spp_ID, values_from = Value))
+levins.sampleInfo <- count.dat$Species
+
+levins.Bn(levins.df, 4, levins.sampleInfo)
+
+count.dat %>%
+  dplyr::group_by(Prey_group, spp_ID) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
 # Save RData file ---------------------------------------------------------
 
 save.image(file = "data/stomach_content_workspace.RData")
+
+
+# Boxplots ----------------------------------------------------------------
+
+
+## Weight ------------------------------------------------------------------
+
+long.prey.df %>% 
+  filter(Measurement == "Weight_g") %>% 
+  filter(Prey_group %in% c("Amphipods","Chironomid","Isopods","Mysid")) %>%
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Weight_g" & Prey_group %in% c("Amphipods","Chironomid","Isopods","Mysid"))$Value, c(0,0.975))) +
+  scale_y_continuous(breaks = seq(0,2,0.25), expand = c(0,0)) +
+  scale_fill_jco(labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  ylab("Weight (g)") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+# ggsave("figures/stomach_contents/major_prey_weight_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
+
+
+## Count -------------------------------------------------------------------
+
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Amphipods")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Count" & Prey_group == "Amphipods")$Value, c(0,0.84))) +
+  scale_y_continuous(breaks = seq(0,70,10), expand = c(0,1)) +
+  scale_fill_manual(values = cbPalette[c(3,1,2,6)], labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  ylab("Count") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+# ggsave("figures/stomach_contents/amphipod_count_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 2.6, height = 4.85, units = "in")
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Chironomid")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_y_continuous(breaks = seq(0,300,50), expand = c(0,1)) +
+  scale_fill_manual(values = cbPalette[c(3,1,2,6)], labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+# ggsave("figures/stomach_contents/chironomid_count_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 2.4, height = 4.85, units = "in")
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Isopods")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Count" & Prey_group == "Isopods")$Value, c(0,0.92))) +
+  scale_y_continuous(breaks = seq(0,40,5), expand = c(0,1)) +
+  scale_fill_manual(values = cbPalette[c(3,1,2,6)], labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+    )
+# ggsave("figures/stomach_contents/isopod_count_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 2.4, height = 4.85, units = "in")
+
+long.prey.df %>% 
+  filter(Measurement == "Count") %>% 
+  filter(Prey_group %in% c("Mysid")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_cartesian(ylim = quantile(filter(long.prey.df, Measurement == "Count" & Prey_group == "Mysid")$Value, c(0,0.85))) +
+  scale_y_continuous(breaks = seq(0,40,5), expand = c(0,1)) +
+  scale_fill_manual(values = cbPalette[c(3,2,6)], labels = c("Arctic Cisco", "Humpback Whitefish", "Least Cisco")) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+    )
+# ggsave("figures/stomach_contents/mysid_count_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 2.4, height = 4.85, units = "in")
+
+
+## Relative percent --------------------------------------------------------
+
+
+long.prey.df %>% 
+  filter(Measurement == "Relative_percent") %>% 
+  filter(Prey_group %in% c("Amphipods","Mysid","Isopods","Chironomid")) %>% 
+ggplot(aes(x = Species, y = Value, fill = Species)) +
+  geom_boxplot() +
+  scale_fill_manual(values = cbPalette[c(3,1,2,6)], labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_y_continuous(limits = c(0,100), breaks = seq(0,100,10), expand = c(0,1)) +
+  facet_wrap(vars(Prey_group), nrow = 1) +
+  ylab("Relative Percent") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+# ggsave("figures/stomach_contents/major_prey_percent_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
 
 # ANOVA for differences in diet by predator -------------------------------
 
@@ -1290,4 +1463,157 @@ legend('topright', legend = paste0('Day', unique(env1$Day)), lty = lty2, col = c
 
 # Matrix 2:
 # Columns = Gut & all the prey columns (e.g., Amphipod.Count, Isopod.Count, Amphipod.Weight, ...)
+
+
+
+# GLM models --------------------------------------------------------------
+
+count.dat <- filter(long.prey.df, Measurement == "Count")
+weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0)
+percent.dat <- filter(long.prey.df, Measurement == "Relative_percent")
+
+i=1
+prey <- c("Amphipods","Chironomid","Isopods","Mysid")
+count.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  ct.mod1 <- glm.nb(Value ~ 1, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod2 <- glm.nb(Value ~ 0 + Species, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod3 <- glm.nb(Value ~ 0 + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod4 <- glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod5 <- glm.nb(Value ~ 0 + Species * length_mm, data = count.dat, subset = Prey_group == prey[i])
+  count.aic.df[,i] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
+}
+count.aic.df
+summary(glm.nb(Value ~ Species + length_mm, data = count.dat, subset = Prey_group == "Isopods"))
+
+i=1
+weight.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  wt.mod1 <- glm(Value ~ 1, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod2 <- glm(Value ~ Species, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod3 <- glm(Value ~ length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod4 <- glm(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod5 <- glm(Value ~ Species * length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  weight.aic.df[,i] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
+}
+weight.aic.df
+weight.dat <- within(weight.dat, Species <- relevel(Species, ref = 2))
+summary(glm(Value ~ Species, data = weight.dat, subset = Prey_group == "Amphipods", family = Gamma(link = log)))
+summary(glm(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == "Isopods", family = Gamma(link = log)))
+
+i=3
+summary(aov(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == prey[i]))
+f <- aov(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == prey[i])
+TukeyHSD(f)
+
+
+# Prey-specific abundance -------------------------------------------------
+
+weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0 & 
+                       Prey_group %in% c("Mysid","Isopods","Amphipods","Chironomid","Bivalves","Fish","Vertebrate","Insects"))
+
+PSA.df <- weight.dat %>% 
+  group_by(Species, Prey_group) %>% 
+  summarise(
+    "PSA" = sum(Value)
+  )
+
+amph <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Amphipods")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+amph
+mys <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Mysid")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+mys
+iso <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Isopods")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+iso
+chiro <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Chironomid")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+chiro
+bival <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Bivalves")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+bival
+fish <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Fish")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+fish
+insect <- weight.dat %>% 
+  filter(spp_ID %in% filter(weight.dat, Prey_group == "Insects")$spp_ID) %>% 
+  group_by(Species) %>% 
+  summarise("Total" = sum(Value))
+insect
+
+PSA.df$TotalH <- NA
+PSA.df[PSA.df$Prey_group == "Amphipods",]$TotalH <- filter(PSA.df, Prey_group == "Amphipods")$PSA/amph$Total
+PSA.df[PSA.df$Prey_group == "Mysid",]$TotalH <- filter(PSA.df, Prey_group == "Mysid")$PSA/mys$Total
+PSA.df[PSA.df$Prey_group == "Isopods",]$TotalH <- filter(PSA.df, Prey_group == "Isopods")$PSA/iso$Total
+PSA.df[PSA.df$Prey_group == "Chironomid",]$TotalH <- filter(PSA.df, Prey_group == "Chironomid")$PSA/chiro$Total
+PSA.df[PSA.df$Prey_group == "Bivalves",]$TotalH <- filter(PSA.df, Prey_group == "Bivalves")$PSA/bival$Total
+PSA.df[PSA.df$Prey_group == "Fish",]$TotalH <- filter(PSA.df, Prey_group == "Fish")$PSA/fish$Total
+PSA.df[PSA.df$Prey_group == "Insects",]$TotalH <- filter(PSA.df, Prey_group == "Insects")$PSA/insect$Total
+
+PSA.df$PSAh <- PSA.df$TotalH*100
+
+
+FO.df <- long.prey.df %>% 
+  filter(Measurement == "Weight_g" & Prey_group %in% c("Mysid","Isopods","Amphipods","Chironomid","Bivalves","Fish","Vertebrate","Insects")) %>% 
+  group_by(Species) %>% 
+  summarise(
+    "Isopods" = sum(Prey_group == "Isopods"),
+    "Amphipods" = sum(Prey_group == "Amphipods"),
+    "Bivalves" = sum(Prey_group == "Bivalves"),
+    "Insects" = sum(Prey_group == "Insects"),
+    "Chironomid" = sum(Prey_group == "Chironomid"),
+    "Mysid" = sum(Prey_group == "Mysid"),
+    "Fish" = sum(Prey_group == "Fish"),
+  )
+FO.df
+
+FO.df <- FO.df %>% 
+  gather(key = "Prey_group", value = "Value", 2:8, na.rm = T)
+FO.df$freq <- ifelse(FO.df$Species == "ARCS", FO.df$Value/46,
+                     ifelse(FO.df$Species == "BDWF", FO.df$Value/22,
+                            ifelse(FO.df$Species == "HBWF", FO.df$Value/47,
+                                   FO.df$Value/56)))
+FO.df$freq100 <- FO.df$freq*100
+
+finalPSA.df <- merge(FO.df,PSA.df, by = c("Species", "Prey_group"))
+
+finalPSA.df[finalPSA.df$Prey_group == "Insects",]$Prey_group <- "Emergent 'flies'"
+finalPSA.df[finalPSA.df$Prey_group == "Chironomid",]$Prey_group <- "Chironomids"
+finalPSA.df[finalPSA.df$Prey_group == "Mysid",]$Prey_group <- "Mysids"
+
+ggplot(finalPSA.df, aes(x = freq100, y = PSAh, label = Prey_group)) +
+  geom_point() +
+  geom_hline(yintercept = 50, color = "red", lty = 2) +
+  geom_vline(xintercept = 50, color = "red", lty = 2) +
+  geom_text_repel() +
+  facet_wrap(vars(Species)) +
+  ylab("Prey-specific abundance") +
+  xlab("Frequency of occurrence") +
+  scale_y_continuous(limits = c(0,100), breaks = seq(0,100,25), expand = c(0,0)) +
+  scale_x_continuous(limits = c(0,100), breaks = seq(0,100,25), expand = c(0,0)) +
+  theme(
+    panel.background = element_blank(),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.spacing = unit(0.3, units = "in"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none",
+    plot.margin = unit(c(0,0.2,0.1,0.1), units = "in")
+  )
+ggsave("figures/stomach_contents/major_prey_weight_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 5, height = 4.85, units = "in")
 
