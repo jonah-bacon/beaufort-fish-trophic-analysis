@@ -22,6 +22,8 @@ library(knitr)
 library(ggsci)
 library(vegan)
 library(kableExtra)
+library(MASS)
+library(ggrepel)
 
 ## Load data
 load(here::here("C:/Users/Bacon/Downloads/beaufort-fish-trophic-analysis/data/stomach_content_workspace.RData"))
@@ -275,6 +277,49 @@ kable(combined.schoener.index) %>%
         kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
 ```
 
+# Niche width
+## Count
+```{r nichewidthcount, include = FALSE}
+kable(count.niche.width) %>%  
+        kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
+## Weight
+```{r nichewidthweight, include = FALSE}
+kable(weight.niche.width) %>%  
+        kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
+
+## Percent
+```{r nichewidthpercent, include = FALSE}
+kable(percent.niche.width) %>%  
+        kable_styling(bootstrap_options = c("hover", "condensed", "responsive"), full_width = F)
+```
+
+# Amundsen/Costello specialization/generalization plot
+```{r costelloplot, echo = FALSE}
+ggplot(finalPSA.df, aes(x = freq100, y = PSAh, label = Prey_group)) +
+  geom_point() +
+  geom_hline(yintercept = 50, color = "red", lty = 2) +
+  geom_vline(xintercept = 50, color = "red", lty = 2) +
+  geom_text_repel() +
+  facet_wrap(vars(Species)) +
+  ylab("Prey-specific abundance") +
+  xlab("Frequency of occurrence") +
+  scale_y_continuous(limits = c(0,100), breaks = seq(0,100,25), expand = c(0,0)) +
+  scale_x_continuous(limits = c(0,100), breaks = seq(0,100,25), expand = c(0,0)) +
+  theme(
+    panel.background = element_blank(),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.spacing = unit(0.3, units = "in"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none",
+    plot.margin = unit(c(0,0.2,0.1,0.1), units = "in")
+  )
+```
+
 # Boxplots of major prey items
 
 ## Count
@@ -435,7 +480,7 @@ for (i in 1:4) {
   ct.mod5 <- glm.nb(Value ~ 0 + Species * length_mm, data = count.dat, subset = Prey_group == prey[i])
   count.aic.df[,i] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
 }
-count.aic.df
+print(count.aic.df)
 
 i=1
 weight.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
@@ -459,5 +504,24 @@ for (i in 1:4) {
   pct.mod5 <- glm(Value ~ 0 + Species * length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
   percent.aic.df[,i] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
 }
-weight.aic.df
+percent.aic.df
 ```
+
+## GLM model summaries
+### Count
+```{r GLMmodelsummariescount, echo = FALSE}
+isopods.count.glm <- glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == "Isopods")
+summary(isopods.count.glm)
+```
+
+### Weight
+```{r GLMmodelsummariesweight, echo = FALSE}
+amphipods.weight.glm <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == "Amphipods", family = Gamma(link = log))
+chironomids.weight.glm <- glm(Value ~ 0 + length_mm, data = weight.dat, subset = Prey_group == "Chironomid", family = Gamma(link = log))
+isopods.weight.glm <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == "Isopods", family = Gamma(link = log))
+
+summary(amphipods.weight.glm)
+summary(chironomids.weight.glm)
+summary(isopods.weight.glm)
+```
+
