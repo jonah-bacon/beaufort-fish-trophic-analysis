@@ -6,11 +6,12 @@
 
 # Load packages -----------------------------------------------------------
 
-library(tidyverse)
 library(ggsci)
 library(vegan)
 library(MASS)
 library(ggrepel)
+library(MicroNiche)
+library(tidyverse)
 
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
@@ -1092,20 +1093,19 @@ combined.schoener.index.year
 # Levin's niche breadth ---------------------------------------------------
 
 count.dat <- filter(long.prey.df, Measurement == "Count" & spp_ID != "ARCS_106")
-levins.df <- as.matrix(count.dat %>% 
-  pivot_wider(id_cols = Prey_group, names_from = spp_ID, values_from = Value))
-levins.sampleInfo <- count.dat$Species
+levins.df <- data.frame(count.dat %>% 
+  pivot_wider(id_cols = spp_ID, names_from = Prey_group, values_from = Value))
+# levins.df <- data.frame(count.dat %>% 
+#                           pivot_longer(id_cols = Species, names_from = Prey_group, values_from = sum(Value)))
+levins.df[is.na(levins.df)] <- 0
+levins.sampleInfo <- as.character(count.dat$Species)
 
-levins.Bn(levins.df, 4, levins.sampleInfo)
+levins.Bn(levins.df, 11, levins.sampleInfo)
 
-count.dat %>%
-  dplyr::group_by(Prey_group, spp_ID) %>%
-  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
-  dplyr::filter(n > 1L) 
-# Save RData file ---------------------------------------------------------
+# Save/load RData file ---------------------------------------------------------
 
 save.image(file = "data/stomach_content_workspace.RData")
-
+load("data/stomach_content_workspace.RData")
 
 # Boxplots ----------------------------------------------------------------
 
@@ -1484,7 +1484,7 @@ for (i in 1:4) {
   count.aic.df[,i] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
 }
 count.aic.df
-summary(glm.nb(Value ~ Species + length_mm, data = count.dat, subset = Prey_group == "Isopods"))
+summary(glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == "Isopods"))
 
 i=1
 weight.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
@@ -1501,10 +1501,50 @@ weight.dat <- within(weight.dat, Species <- relevel(Species, ref = 2))
 summary(glm(Value ~ Species, data = weight.dat, subset = Prey_group == "Amphipods", family = Gamma(link = log)))
 summary(glm(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == "Isopods", family = Gamma(link = log)))
 
-i=3
-summary(aov(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == prey[i]))
-f <- aov(Value ~ Species + length_mm, data = weight.dat, subset = Prey_group == prey[i])
-TukeyHSD(f)
+count.dat <- filter(long.prey.df, Measurement == "Count")
+weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0)
+percent.dat <- filter(long.prey.df, Measurement == "Relative_percent")
+
+i=1
+prey <- c("Amphipods","Chironomid","Isopods","Mysid")
+count.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  ct.mod1 <- glm.nb(Value ~ 1, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod2 <- glm.nb(Value ~ 0 + Species, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod3 <- glm.nb(Value ~ 0 + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod4 <- glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod5 <- glm.nb(Value ~ 0 + Species * length_mm, data = count.dat, subset = Prey_group == prey[i])
+  count.aic.df[,i] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
+}
+print(count.aic.df)
+
+i=1
+weight.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  wt.mod1 <- glm(Value ~ 1, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod2 <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod3 <- glm(Value ~ 0 + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod4 <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod5 <- glm(Value ~ 0 + Species * length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  weight.aic.df[,i] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
+}
+weight.aic.df
+summary(glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == "Amphipods", family = Gamma(link = log)))
+summary(glm(Value ~ 0 + length_mm, data = weight.dat, subset = Prey_group == "Chironomid", family = Gamma(link = log)))
+summary(glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == "Isopods", family = Gamma(link = log)))
+summary(glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == "Mysid", family = Gamma(link = log)))
+
+i=1
+percent.aic.df <- data.frame("amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  pct.mod1 <- glm(Value ~ 1, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod2 <- glm(Value ~ 0 + Species, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod3 <- glm(Value ~ 0 + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod4 <- glm(Value ~ 0 + Species + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  pct.mod5 <- glm(Value ~ 0 + Species * length_mm, data = percent.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  percent.aic.df[,i] <- AIC(pct.mod1, pct.mod2, pct.mod3, pct.mod4, pct.mod5)[,2]
+}
+percent.aic.df
 
 
 # Prey-specific abundance -------------------------------------------------
@@ -1615,5 +1655,5 @@ ggplot(finalPSA.df, aes(x = freq100, y = PSAh, label = Prey_group)) +
     legend.position = "none",
     plot.margin = unit(c(0,0.2,0.1,0.1), units = "in")
   )
-ggsave("figures/stomach_contents/major_prey_weight_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 5, height = 4.85, units = "in")
+# ggsave("figures/stomach_contents/major_prey_weight_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 5, height = 4.85, units = "in")
 
