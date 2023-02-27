@@ -13,6 +13,8 @@ library(ggrepel)
 library(MicroNiche)
 library(tidyverse)
 library(glmmTMB)
+library(zoid)
+library(nnet)
 
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
@@ -1467,115 +1469,6 @@ legend('topright', legend = paste0('Day', unique(env1$Day)), lty = lty2, col = c
 
 
 
-# GLM models --------------------------------------------------------------
-
-count.dat <- filter(long.prey.df, Measurement == "Count")
-weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0)
-percent.dat <- filter(long.prey.df, Measurement == "Relative_percent")
-percent.dat$Value2 <- percent.dat$Value/100
-prey <- c("Amphipods","Chironomid","Isopods","Mysid")
-
-i=1
-count.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
-for (i in 1:4) {
-  ct.mod1 <- glm.nb(Value ~ 1, data = count.dat, subset = Prey_group == prey[i])
-  ct.mod2 <- glm.nb(Value ~ 0 + length_mm, data = count.dat, subset = Prey_group == prey[i])
-  ct.mod3 <- glm.nb(Value ~ 0 + Species, data = count.dat, subset = Prey_group == prey[i])
-  ct.mod4 <- glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == prey[i])
-  ct.mod5 <- glm.nb(Value ~ 0 + Species * length_mm, data = count.dat, subset = Prey_group == prey[i])
-  count.aic.df[,i+1] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
-}
-print(count.aic.df)
-# No model was deemed as significantly better than the null model
-# Model is not working correctly with the "~ 0 + ...". It is still using one of the species as the intercept term.
-
-i=1
-weight.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
-for (i in 1:4) {
-  wt.mod1 <- glm(Value ~ 1, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
-  wt.mod2 <- glm(Value ~ 0 + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
-  wt.mod3 <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
-  wt.mod4 <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
-  wt.mod5 <- glm(Value ~ 0 + Species * length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
-  weight.aic.df[,i+1] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
-}
-weight.aic.df
-# Significant models: Amphipod & Model3, Isopod and Model4
-
-amph3.glm <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == "Amphipods", family = Gamma(link = log))
-summary(amph3.glm)
-
-iso4.glm <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == "Isopods", family = Gamma(link = log))
-summary(iso4.glm)
-
-new.df <- data.frame(Species = c("ARCS", "BDWF", "HBWF", "LSCS"), length_mm = 200)
-predict.glm(iso4.glm, newdata = new.df, type = "response", se.fit = TRUE)
-
-
-i=1
-percent.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
-for (i in 1:4) {
-  pct.mod1 <- glmmTMB(Value2 ~ 1, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
-  pct.mod2 <- glmmTMB(Value2 ~ 0 + length_mm, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
-  pct.mod3 <- glmmTMB(Value2 ~ 0 + Species, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
-  pct.mod4 <- glmmTMB(Value2 ~ 0 + Species + length_mm, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
-  pct.mod5 <- glmmTMB(Value2 ~ 0 + Species * length_mm, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
-  percent.aic.df[,i+1] <- AIC(pct.mod1, pct.mod2, pct.mod3, pct.mod4, pct.mod5)[,2]
-}
-percent.aic.df
-
-i=1
-percent.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
-for (i in 1:4) {
-  pct.mod1 <- glm(Value2 ~ 1, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
-  pct.mod2 <- glm(Value2 ~ 0 + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
-  pct.mod3 <- glm(Value2 ~ 0 + Species, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
-  pct.mod4 <- glm(Value2 ~ 0 + Species + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
-  pct.mod5 <- glm(Value2 ~ 0 + Species * length_mm, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
-  percent.aic.df[,i+1] <- AIC(pct.mod1, pct.mod2, pct.mod3, pct.mod4, pct.mod5)[,2]
-}
-percent.aic.df
-# Significant models: NONE!
-
-
-# ggplot of significant models --------------------------------------------
-
-ggplot(data = filter(weight.dat, Prey_group == "Amphipods"), aes(x = Species, y = Value)) +
-  geom_boxplot() +
-  scale_y_continuous(limits = c(0,1.05), breaks = seq(0,1,0.2), expand = c(0,0)) +
-  ylab("Amphipod weight (g)") +
-  theme(
-    panel.background = element_blank(),
-    axis.ticks.x = element_blank(),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 16),
-    axis.text.y = element_text(size = 12),
-    strip.text = element_text(size = 12),
-    strip.background = element_rect(fill = "gray80", color = "black"),
-    panel.border = element_rect(color = "black", fill = NA),
-    legend.position = "none"
-  )
-# ggsave("figures/stomach_contents/amphipod_weight_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
-
-ggplot(data = filter(weight.dat, Prey_group == "Isopods"), aes(x = length_mm, y = Value, shape = Species, color = Species)) +
-  geom_point(aes(shape = Species)) +
-  geom_smooth(method = "lm", se = FALSE) +
-  scale_y_continuous(limits = c(-0.1,4.1), breaks = seq(0,4,0.5), expand = c(0,0)) +
-  ylab("Isopod weight (g)") +
-  xlab("Length (mm)") +
-  theme(
-    panel.background = element_blank(),
-    axis.ticks.x = element_blank(),
-    axis.title.y = element_text(size = 16),
-    axis.text.y = element_text(size = 12),
-    strip.text = element_text(size = 12),
-    strip.background = element_rect(fill = "gray80", color = "black"),
-    panel.border = element_rect(color = "black", fill = NA),
-    legend.position = c(0.1,0.75)
-  )
-# ggsave("figures/stomach_contents/isopod_weight_by_length.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
-
-
 # Prey-specific abundance -------------------------------------------------
 
 weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0 & 
@@ -1692,3 +1585,111 @@ ggplot(finalPSA.df, aes(x = freq100, y = PSAh, label = Prey_group)) +
 hist(count.dat$Value)
 hist(weight.dat$Value)
 hist(percent.dat$Value)
+
+# GLM models --------------------------------------------------------------
+
+count.dat <- filter(long.prey.df, Measurement == "Count")
+weight.dat <- filter(long.prey.df, Measurement == "Weight_g" & Value > 0)
+percent.dat <- filter(long.prey.df, Measurement == "Relative_percent")
+percent.dat$Value2 <- percent.dat$Value/100
+prey <- c("Amphipods","Chironomid","Isopods","Mysid")
+
+i=1
+count.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  ct.mod1 <- glm.nb(Value ~ 1, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod2 <- glm.nb(Value ~ 0 + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod3 <- glm.nb(Value ~ 0 + Species, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod4 <- glm.nb(Value ~ 0 + Species + length_mm, data = count.dat, subset = Prey_group == prey[i])
+  ct.mod5 <- glm.nb(Value ~ 0 + Species * length_mm, data = count.dat, subset = Prey_group == prey[i])
+  count.aic.df[,i+1] <- AIC(ct.mod1, ct.mod2, ct.mod3, ct.mod4, ct.mod5)[,2]
+}
+print(count.aic.df)
+# No model was deemed as significantly better than the null model
+# Model is not working correctly with the "~ 0 + ...". It is still using one of the species as the intercept term.
+
+i=1
+weight.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  wt.mod1 <- glm(Value ~ 1, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod2 <- glm(Value ~ 0 + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod3 <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod4 <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  wt.mod5 <- glm(Value ~ 0 + Species * length_mm, data = weight.dat, subset = Prey_group == prey[i], family = Gamma(link = log))
+  weight.aic.df[,i+1] <- AIC(wt.mod1, wt.mod2, wt.mod3, wt.mod4, wt.mod5)[,2]
+}
+weight.aic.df
+# Significant models: Amphipod & Model3, Isopod and Model4
+
+amph3.glm <- glm(Value ~ 0 + Species, data = weight.dat, subset = Prey_group == "Amphipods", family = Gamma(link = log))
+summary(amph3.glm)
+
+iso4.glm <- glm(Value ~ 0 + Species + length_mm, data = weight.dat, subset = Prey_group == "Isopods", family = Gamma(link = log))
+summary(iso4.glm)
+
+new.df <- data.frame(Species = c("ARCS", "BDWF", "HBWF", "LSCS"), length_mm = 200)
+predict.glm(iso4.glm, newdata = new.df, type = "response", se.fit = TRUE)
+
+
+i=1
+percent.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  pct.mod1 <- glmmTMB(Value2 ~ 1, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
+  pct.mod2 <- glmmTMB(Value2 ~ 0 + length_mm, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
+  pct.mod3 <- glmmTMB(Value2 ~ 0 + Species, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
+  pct.mod4 <- glmmTMB(Value2 ~ 0 + Species + length_mm, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
+  pct.mod5 <- glmmTMB(Value2 ~ 0 + Species * length_mm, data = filter(percent.dat, "Prey_group" == prey[i]), family = betabinomial(link = "logit"))
+  percent.aic.df[,i+1] <- AIC(pct.mod1, pct.mod2, pct.mod3, pct.mod4, pct.mod5)[,2]
+}
+percent.aic.df
+
+i=1
+percent.aic.df <- data.frame("n.params" = c(0,1,4,5,9), "amphipods" = rep(NA,5), "chironomid" = rep(NA,5), "isopods" = rep(NA,5), "mysid" = rep(NA,5))
+for (i in 1:4) {
+  pct.mod1 <- glm(Value2 ~ 1, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
+  pct.mod2 <- glm(Value2 ~ 0 + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
+  pct.mod3 <- glm(Value2 ~ 0 + Species, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
+  pct.mod4 <- glm(Value2 ~ 0 + Species + length_mm, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
+  pct.mod5 <- glm(Value2 ~ 0 + Species * length_mm, data = percent.dat, subset = Prey_group == prey[i], family = binomial(link = "logit"))
+  percent.aic.df[,i+1] <- AIC(pct.mod1, pct.mod2, pct.mod3, pct.mod4, pct.mod5)[,2]
+}
+percent.aic.df
+# Significant models: NONE!
+
+
+# ggplot of significant models --------------------------------------------
+
+ggplot(data = filter(weight.dat, Prey_group == "Amphipods"), aes(x = Species, y = Value)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0,1.05), breaks = seq(0,1,0.2), expand = c(0,0)) +
+  ylab("Amphipod weight (g)") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = "none"
+  )
+# ggsave("figures/stomach_contents/amphipod_weight_boxplot_wo_outliers.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
+
+ggplot(data = filter(weight.dat, Prey_group == "Isopods"), aes(x = length_mm, y = Value, shape = Species, color = Species)) +
+  geom_point(aes(shape = Species)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_continuous(limits = c(-0.1,4.1), breaks = seq(0,4,0.5), expand = c(0,0)) +
+  ylab("Isopod weight (g)") +
+  xlab("Length (mm)") +
+  theme(
+    panel.background = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 12),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    legend.position = c(0.1,0.75)
+  )
+# ggsave("figures/stomach_contents/isopod_weight_by_length.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
