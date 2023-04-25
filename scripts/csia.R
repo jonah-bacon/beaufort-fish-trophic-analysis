@@ -1,31 +1,45 @@
 # =====================================================================
-# Nitrogen amino acid compound-specific SIA from eye lenses
+# Nitrogen Amino Acid Compound-Specific SIA of eye lenses
 # Jonah Bacon
-# 12 October 2022
+# 22 March 2023
 # =====================================================================
 
-
-# Load libraries ----------------------------------------------------------
+# Load packages -----------------------------------------------------------
 
 library(tidyverse)
 library(ggsci)
 library(ggrepel)
 
-# Load data ---------------------------------------------------------------
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-csia.dat <- read.csv("data/CSIA_data_1.csv", header = TRUE, skip = 1)
+species.names <- c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")
+names(species.names) <- c("ARCS","BDWF","HBWF","LSCS")
 
-## Remove lab standards from analysis:
-temp.dat1 <- filter(csia.dat, CSIA_ID != is.na(CSIA_ID))
+# Load CSIA data ---------------------------------------------------------------
+
+csia.dat <- read.csv("data/data - CSIA Data.csv", header = TRUE, skip = 1)
 
 ## Average aa values across three replicate samples:
-temp.dat2 <- temp.dat1 %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+mean.csia <- csia.dat %>% 
+  group_by(sample_ID) %>% 
+  summarise(lens_ID = unique(lens_ID), species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
             Ala = mean(Ala, na.rm = T), Gly = mean(Gly, na.rm = T), Val = mean(Val, na.rm = T), Leu = mean(Leu, na.rm = T), iLeu = mean(iLeu, na.rm = T),
             nLeu = mean(nLeu, na.rm = T), Thr = mean(Thr, na.rm = T), Ser = mean(Ser, na.rm = T), Asp = mean(Asp, na.rm = T), Pro = mean(Pro, na.rm = T),
             Glu = mean(Glu, na.rm = T), Met = mean(Met, na.rm = T), Phe = mean(Phe, na.rm = T), Caf = mean(Caf, na.rm = T), Lys = mean(Lys, na.rm = T))
 
+# Load lens measurement data ----------------------------------------------
+
+# load("data/lens_measurements.RData")
+# 
+# lens.df <- lens.df %>% 
+#   select(-c(Measurement_pixels, Magnification, Conversion_factor, Measurement_um, photo_ID, Notes, Diameter_um, Radius_um, SIAposition))
+
+# head(lens.df)
+# str(lens.df)
+
+# csia.df <- mean.csia %>% 
+#   left_join(lens.df, by = c("lens_ID","layer","spp_ID","species","ID"), keep = FALSE)
+# csia.df$SIAposition[csia.df$sample_ID == "LS_36-2_07-06"] = 1424.076005/4
 
 # Weighted means estimates of TP ------------------------------------------
 
@@ -36,9 +50,9 @@ temp.dat2 <- temp.dat1 %>%
 ## Methods Section 2.5
 ## https://www.int-res.com/articles/meps2020/641/m641p195.pdf
 
-weighted.means <- temp.dat1 %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+weighted.means <- csia.dat %>% 
+  group_by(CSIA_ID, sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
             del.15N.Gly = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T)) / sum(1/sd(Gly, na.rm = T)), 
             del.15N.Phe = sum(mean(Phe, na.rm = T)/sd(Phe, na.rm = T)) / sum(1/sd(Phe, na.rm = T)), 
             del.15N.Lys = sum(mean(Lys, na.rm = T)/sd(Lys, na.rm = T)) / sum(1/sd(Lys, na.rm = T)),
@@ -58,10 +72,10 @@ TEF = 5.7
 # Weighted means TP estimates by species ----------------------------------
 ## Weighted means estimates by species, according to methods above:
 
-ARCS.weighted.means <- temp.dat1 %>% 
-  filter(Species == "ARCS") %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+ARCS.weighted.means <- csia.dat %>% 
+  filter(species == "ARCS") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
             source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
             trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
             source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
@@ -70,10 +84,10 @@ ARCS.weighted.means <- temp.dat1 %>%
             trophic = trophic.numerator/trophic.denominator,
             TP = ((trophic - source - beta)/TEF) + 1)
 
-BDWF.weighted.means <- temp.dat1 %>% 
-  filter(Species == "BDWF") %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+BDWF.weighted.means <- csia.dat %>% 
+  filter(species == "BDWF") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
             source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
             trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
             source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
@@ -82,10 +96,10 @@ BDWF.weighted.means <- temp.dat1 %>%
             trophic = trophic.numerator/trophic.denominator,
             TP = ((trophic - source - beta)/TEF) + 1)
 
-LSCS.weighted.means <- temp.dat1 %>% 
-  filter(Species == "LSCS") %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+LSCS.weighted.means <- csia.dat %>% 
+  filter(species == "LSCS") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
             source.numerator = sum(mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
             trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
             source.denominator = sum(1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
@@ -94,10 +108,10 @@ LSCS.weighted.means <- temp.dat1 %>%
             trophic = trophic.numerator/trophic.denominator,
             TP = ((trophic - source - beta)/TEF) + 1)
 
-HBWF1.weighted.means <- temp.dat1 %>% 
-  filter(Species == "HBWF" & CSIA_ID == 8) %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
+HBWF.weighted.means <- csia.dat %>% 
+  filter(species == "HBWF") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
             source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
             trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
             source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
@@ -106,14 +120,13 @@ HBWF1.weighted.means <- temp.dat1 %>%
             trophic = trophic.numerator/trophic.denominator,
             TP = ((trophic - source - beta)/TEF) + 1)
 
-HBWF2.weighted.means <- temp.dat1 %>% 
-  filter(Species == "HBWF" & CSIA_ID == 10) %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
-            source.numerator = sum(mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
-            trophic.numerator = sum(mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
-            source.denominator = sum(1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
-            trophic.denominator = sum(1/sd(Leu, na.rm = T), 1/sd(Glu, na.rm = T)),
+combined <- csia.dat %>% 
+  group_by(CSIA_ID, sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
+            source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
+            trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
+            source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
+            trophic.denominator = sum(1/sd(Ala, na.rm = T), 1/sd(Leu, na.rm = T), 1/sd(Glu, na.rm = T)),
             source = source.numerator/source.denominator,
             trophic = trophic.numerator/trophic.denominator,
             TP = ((trophic - source - beta)/TEF) + 1)
@@ -123,109 +136,534 @@ combined.csia.weighted.means.df <- rbind(
   ARCS.weighted.means,
   LSCS.weighted.means,
   BDWF.weighted.means,
-  HBWF1.weighted.means,
-  HBWF2.weighted.means
+  HBWF.weighted.means
 )
 
-## Create a dummy variable corresponding to the relative time point
-## the sample came from within the individual fish's ontogeny
-## i.e., 1 = early time point = sample came from the nucleus
-## 2 = later time point = sample came from external layer of lens
-## Variable values are specific to the order of rbind-ing done when creating
-## the "combined.csia.weighted.means.df"
-combined.csia.weighted.means.df$tempvar <- c(2,1,2,1,3,1,2,2,1)
+clean.csia.df <- filter(combined.csia.weighted.means.df, !is.na(TP))
+clean.csia.df <- clean.csia.df %>% 
+  left_join(csia.dat, by = c("sample_ID","spp_ID","species","ID"), keep = FALSE)
 
+# Phenylalanine across ontogeny -------------------------------------------
 
-## Plot weighted means TP estimates versus relative time point:
-
-ggplot(combined.csia.weighted.means.df, aes(x = tempvar, y = TP, color = Species, fill = Species, label = round(TP,2))) +
-  scale_color_jco() +
-  scale_fill_jco() +
-  geom_line(lwd = 2) +
-  geom_point(pch = 21, size = 4, color = "black") +
-  geom_label_repel(fill = "white", color = "black", box.padding = 1) +
-  xlab("Relative Time Point") +
-  ylab("Trophic Position") +
-  scale_x_continuous(limits = c(0.8,3.2), breaks = seq(1,3,1), expand = c(0,0)) +
+ggplot(mean.csia, aes(x = SIAposition, y = Phe, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression("Phenylalanine"~italic(delta)^15*N)) +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  # scale_y_continuous(limits=c(0,5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
   theme(
     panel.background = element_blank(),
-    panel.grid.major.y = element_line(color = "gray70"),
-    legend.key = element_blank(),
-    text = element_text(size = 14, face = "bold")
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
   )
-# ggsave(file = "figures/CSIA_TP.png", width = 7.5, height = 10, units = "in", dpi = 600)
+# ggsave(file = "figures/phenylalanine.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 
-# Load bulk SIA data ------------------------------------------------------
+# Phenylalanine across ontogeny, by species -------------------------------
 
-
-bulk.data <- read.csv("data/bulk.SIA.data.csv", header = T)
-
-delta.df <- bulk.data %>% 
-  select(c(species, ID, laminae, d15N, d13C)) %>% 
-  unite("spp_ID", species:ID, sep= "_", remove = FALSE) %>% 
-  na.omit()
-
-delta.df$spp_ID <- as.factor(delta.df$spp_ID)
-delta.df$species <- as.factor(delta.df$species)
-delta.df$ID <- as.factor(delta.df$ID)
-
-delta.df %>% 
-  filter(spp_ID %in% c("ARCS_14-2", "LSCS_36", "BDWF_38", "HBWF_30-2")) %>% 
-  ggplot(aes(x = laminae, y = d15N, color = species, fill = species)) +
-  scale_color_jco() +
-  scale_fill_jco() +
-  geom_line(lwd = 2) +
-  geom_point(pch = 21, size = 4, color = "black") +
-  # geom_label_repel(fill = "white", color = "black", box.padding = 1) +
-  xlab("Lamina layer") +
-  ylab("Delta 15 N") +
-  scale_x_continuous(limits = c(0,10), breaks = seq(0,10,1), expand = c(0,0.2)) +
+## ARCS --------------------------------------------------------------------
+ggplot(filter(mean.csia, species == "ARCS"), aes(x = SIAposition, y = Phe, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression("Phenylalanine"~italic(delta)^15*N)) +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  # scale_y_continuous(limits=c(0,5), breaks = 0:5, expand = c(0,0)) +
+  # facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
   theme(
     panel.background = element_blank(),
-    panel.grid.major.y = element_line(color = "gray70"),
-    legend.key = element_blank(),
-    text = element_text(size = 14, face = "bold")
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
   )
+# ggsave(file = "figures/ARCS.phenylalanine.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
 
-# Plot source AA (Phe) vs lamina time -------------------------------------
-
-temp.dat3 <- temp.dat1 %>% 
-  group_by(CSIA_ID, Sample_ID) %>% 
-  summarise(Species = unique(Species), ID = unique(ID), spp_ID = unique(spp_ID), Layer = unique(Layer), Sample_wt_mg = unique(Sample_wt_mg),
-            Phe_d15N = mean(Phe, na.rm = T),
-            Glu_d15N = mean(Glu, na.rm = T))
-temp.dat3$tempvar <- c(2,1,2,1,3,1,2,3,1,2)
-
-ggplot(temp.dat3, aes(x = tempvar, y = Phe_d15N, color = Species, fill = Species, label = round(Phe_d15N,2))) +
-  scale_color_jco() +
-  scale_fill_jco() +
-  geom_line(lwd = 2) +
-  geom_point(pch = 21, size = 4, color = "black") +
-  geom_label_repel(fill = "white", color = "black", box.padding = 1) +
-  xlab("Relative Time Point") +
-  ylab("Source AA (Phe) d15N") +
-  scale_x_continuous(limits = c(0.8,3.2), breaks = seq(1,3,1), expand = c(0,0)) +
+## BDWF --------------------------------------------------------------------
+ggplot(filter(mean.csia, species == "BDWF"), aes(x = SIAposition, y = Phe, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression("Phenylalanine"~italic(delta)^15*N)) +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  # scale_y_continuous(limits=c(0,5), breaks = 0:5, expand = c(0,0)) +
+  # facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
   theme(
     panel.background = element_blank(),
-    panel.grid.major.y = element_line(color = "gray70"),
-    legend.key = element_blank(),
-    text = element_text(size = 14, face = "bold")
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
   )
+# ggsave(file = "figures/BDWF.phenylalanine.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
 
-ggplot(temp.dat3, aes(x = tempvar, y = Glu_d15N, color = Species, fill = Species, label = round(Glu_d15N,2))) +
-  scale_color_jco() +
-  scale_fill_jco() +
-  geom_line(lwd = 2) +
-  geom_point(pch = 21, size = 4, color = "black") +
-  geom_label_repel(fill = "white", color = "black", box.padding = 1) +
-  xlab("Relative Time Point") +
-  ylab("Trophic AA (Glu) d15N") +
-  scale_x_continuous(limits = c(0.8,3.2), breaks = seq(1,3,1), expand = c(0,0)) +
+
+## HBWF --------------------------------------------------------------------
+ggplot(filter(mean.csia, species == "HBWF"), aes(x = SIAposition, y = Phe, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression("Phenylalanine"~italic(delta)^15*N)) +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  # scale_y_continuous(limits=c(0,5), breaks = 0:5, expand = c(0,0)) +
+  # facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
   theme(
     panel.background = element_blank(),
-    panel.grid.major.y = element_line(color = "gray70"),
-    legend.key = element_blank(),
-    text = element_text(size = 14, face = "bold")
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
   )
+# ggsave(file = "figures/HBWF.phenylalanine.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+
+## LSCS --------------------------------------------------------------------
+ggplot(filter(mean.csia, species == "LSCS"), aes(x = SIAposition, y = Phe, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression("Phenylalanine"~italic(delta)^15*N)) +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  # scale_y_continuous(limits=c(0,5), breaks = 0:5, expand = c(0,0)) +
+  # facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/LSCS.phenylalanine.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+
+
+# Basic TP vs SIA position ------------------------------------------------
+
+## Weighted means estimates by species, according to methods above:
+
+ARCS.weighted.means <- csia.dat %>% 
+  filter(species == "ARCS") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
+            source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
+            trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
+            source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
+            trophic.denominator = sum(1/sd(Ala, na.rm = T), 1/sd(Leu, na.rm = T), 1/sd(Glu, na.rm = T)),
+            source = source.numerator/source.denominator,
+            trophic = trophic.numerator/trophic.denominator,
+            weighted.means.TP = ((trophic - source - beta)/TEF) + 1)
+
+BDWF.weighted.means <- csia.dat %>% 
+  filter(species == "BDWF") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
+            source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
+            trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
+            source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
+            trophic.denominator = sum(1/sd(Ala, na.rm = T), 1/sd(Leu, na.rm = T), 1/sd(Glu, na.rm = T)),
+            source = source.numerator/source.denominator,
+            trophic = trophic.numerator/trophic.denominator,
+            weighted.means.TP = ((trophic - source - beta)/TEF) + 1)
+
+LSCS.weighted.means <- csia.dat %>% 
+  filter(species == "LSCS") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
+            source.numerator = sum(mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
+            trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
+            source.denominator = sum(1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
+            trophic.denominator = sum(1/sd(Ala, na.rm = T), 1/sd(Leu, na.rm = T), 1/sd(Glu, na.rm = T)),
+            source = source.numerator/source.denominator,
+            trophic = trophic.numerator/trophic.denominator,
+            weighted.means.TP = ((trophic - source - beta)/TEF) + 1)
+
+HBWF.weighted.means <- csia.dat %>% 
+  filter(species == "HBWF") %>% 
+  group_by(sample_ID) %>% 
+  summarise(species = unique(species), ID = unique(ID), spp_ID = unique(spp_ID), SIAposition = unique(SIAposition),
+            source.numerator = sum(mean(Gly, na.rm = T)/sd(Gly, na.rm = T), mean(Phe, na.rm = T)/sd(Phe, na.rm = T), mean(Lys, na.rm = T)/sd(Lys, na.rm = T)),
+            trophic.numerator = sum(mean(Ala, na.rm = T)/sd(Ala, na.rm = T), mean(Leu, na.rm = T)/sd(Leu, na.rm = T), mean(Glu, na.rm = T)/sd(Glu, na.rm = T)),
+            source.denominator = sum(1/sd(Gly, na.rm = T), 1/sd(Phe, na.rm = T), 1/sd(Lys, na.rm = T)),
+            trophic.denominator = sum(1/sd(Ala, na.rm = T), 1/sd(Leu, na.rm = T), 1/sd(Glu, na.rm = T)),
+            source = source.numerator/source.denominator,
+            trophic = trophic.numerator/trophic.denominator,
+            weighted.means.TP = ((trophic - source - beta)/TEF) + 1)
+
+
+## Combine four species TP estimates into one dataframe:
+weighted.means.df <- rbind(
+  ARCS.weighted.means,
+  LSCS.weighted.means,
+  BDWF.weighted.means,
+  HBWF.weighted.means
+)
+
+clean.weighted.means.df <- filter(weighted.means.df, !is.na(weighted.means.TP))
+
+TP.df <- mean.csia %>% 
+  mutate(bradley.TP = 1 + ((Glu - Phe - 3.6)/5.7),
+         chikaraishi.TP = 1 + ((Glu - Phe - 3.4)/7.6))
+
+TP.df <- clean.weighted.means.df %>% 
+  left_join(TP.df, by = c("sample_ID","spp_ID","species","ID","SIAposition"), keep = FALSE) %>% 
+  select(c(sample_ID,lens_ID,spp_ID,species,ID,SIAposition,weighted.means.TP, bradley.TP, chikaraishi.TP))
+
+
+
+# Weighted means TP vs SIA position ---------------------------------------
+
+# Plot data ---------------------------------------------------------------
+
+# Bradley -----------------------------------------------------------------
+
+ggplot(TP.df, aes(x = SIAposition, y = bradley.TP, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("Bradley et al. TP") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/Bradley.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+# Chikaraishi -------------------------------------------------------------
+
+ggplot(TP.df, aes(x = SIAposition, y = chikaraishi.TP, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("Chikaraishi et al. TP") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/chikaraishi.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## Weighted Means ----------------------------------------------------------
+
+ggplot(TP.df, aes(x = SIAposition, y = weighted.means.TP, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("Weighted Means TP") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/weighted.means.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+
+# 3 methods per species ---------------------------------------------------
+
+## ARCS
+TP.df %>% 
+  pivot_longer(cols = c(weighted.means.TP, bradley.TP, chikaraishi.TP), names_to = "method", values_to = "TP_estimate") %>% 
+  filter(species == "ARCS") %>% 
+ggplot(aes(x = SIAposition, y = TP_estimate, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("TP estimate") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~method, nrow = 1, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/ARCS.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## BDWF
+TP.df %>% 
+  pivot_longer(cols = c(weighted.means.TP, bradley.TP, chikaraishi.TP), names_to = "method", values_to = "TP_estimate") %>% 
+  filter(species == "BDWF") %>% 
+ggplot(aes(x = SIAposition, y = TP_estimate, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(3,2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("TP estimate") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~method, nrow = 1, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/BDWF.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## HBWF
+TP.df %>% 
+  pivot_longer(cols = c(weighted.means.TP, bradley.TP, chikaraishi.TP), names_to = "method", values_to = "TP_estimate") %>% 
+  filter(species == "HBWF") %>% 
+ggplot(aes(x = SIAposition, y = TP_estimate, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(2,4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("TP estimate") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~method, nrow = 1, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/HBWF.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## LSCS
+TP.df %>% 
+  pivot_longer(cols = c(weighted.means.TP, bradley.TP, chikaraishi.TP), names_to = "method", values_to = "TP_estimate") %>% 
+  filter(species == "LSCS") %>% 
+ggplot(aes(x = SIAposition, y = TP_estimate, group = spp_ID, fill = species, shape = species)) + 
+  geom_line(linewidth = 0.5, lty = 2) +
+  geom_point(aes(color = species, fill = species), color = "black", cex = 3) +
+  scale_shape_manual(values=c(25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(4)]) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab("TP estimate") +
+  scale_x_continuous(limits=c(0,2100), breaks=seq(0,2000,500), expand=c(0,5)) +
+  scale_y_continuous(limits=c(0,5.5), breaks = 0:5, expand = c(0,0)) +
+  facet_wrap(~method, nrow = 1, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave(file = "figures/LSCS.CSIA_TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+# d15N + bulk vs lens position, faceted by species -------------------------------
+
+load("data/bulk_sia_data.RData")
+
+ggplot(data = sia.df, aes(x = SIAposition, y = d15N)) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 3) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  scale_x_continuous(limits=c(0,1800), breaks=seq(0,1800,500), expand=c(0,5)) +
+  scale_y_continuous(limits = c(0,15), breaks = seq(0,15,3), expand = c(0,0.1), sec.axis = sec_axis(~ . /3, name = "Trophic Position")) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor.x = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave("figures/d15N.across.lens.by.spp.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## Chikaraishi
+ggplot(data = sia.df, aes(x = SIAposition, y = d15N)) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 3, alpha = 0.2) +
+  geom_line(data = TP.df, aes(x = SIAposition, y = chikaraishi.TP*3, group = spp_ID), lwd = 0.5, lty = 2) +
+  geom_point(data = TP.df, aes(x = SIAposition, y = chikaraishi.TP*3, group = spp_ID, fill = species, shape = species), color = "black", cex = 3) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  scale_x_continuous(limits=c(0,1800), breaks=seq(0,1800,500), expand=c(0,5)) +
+  scale_y_continuous(limits = c(0,15), breaks = seq(0,15,3), expand = c(0,0.1), sec.axis = sec_axis(~ . /3, name = "Chikaraishi TP")) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor.x = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave("figures/d15N+chik.TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## Bradley
+ggplot(data = sia.df, aes(x = SIAposition, y = d15N)) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 3, alpha = 0.2) +
+  geom_line(data = TP.df, aes(x = SIAposition, y = bradley.TP*3, group = spp_ID), lwd = 0.5, lty = 2) +
+  geom_point(data = TP.df, aes(x = SIAposition, y = bradley.TP*3, group = spp_ID, fill = species, shape = species), color = "black", cex = 3) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  scale_x_continuous(limits=c(0,1800), breaks=seq(0,1800,500), expand=c(0,5)) +
+  scale_y_continuous(limits = c(0,15), breaks = seq(0,15,3), expand = c(0,0.1), sec.axis = sec_axis(~ . /3, name = "Bradley TP")) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor.x = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave("figures/d15N+brad.TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")
+
+## Weighted Means
+ggplot(data = sia.df, aes(x = SIAposition, y = d15N)) +
+  geom_point(aes(fill = species, shape = species), color = "black", cex = 3, alpha = 0.2) +
+  geom_line(data = TP.df, aes(x = SIAposition, y = weighted.means.TP*3, group = spp_ID), lwd = 0.5, lty = 2) +
+  geom_point(data = TP.df, aes(x = SIAposition, y = weighted.means.TP*3, group = spp_ID, fill = species, shape = species), color = "black", cex = 3) +
+  xlab("Radial midpoint of lamina (\u03bcm)") +
+  ylab(expression(italic(delta)^15*N~("\211"~" atmospheric "~N[2]))) +
+  scale_shape_manual(values=c(21,22,24,25), name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco"))+
+  scale_fill_manual(values=cbPalette[c(1,3,2,4)], name = "Species", labels = c("Arctic Cisco", "Broad Whitefish", "Humpback Whitefish", "Least Cisco")) +
+  scale_color_manual(values=cbPalette[c(1,3,2,4)]) +
+  scale_x_continuous(limits=c(0,1800), breaks=seq(0,1800,500), expand=c(0,5)) +
+  scale_y_continuous(limits = c(0,15), breaks = seq(0,15,3), expand = c(0,0.1), sec.axis = sec_axis(~ . /3, name = "Weighted Means TP")) +
+  facet_wrap(~species, ncol = 2, labeller = labeller(species = species.names)) +
+  theme(
+    panel.background = element_blank(),
+    panel.grid = element_line(color = "gray85"),
+    panel.grid.minor.x = element_blank(),
+    axis.title.x = element_text(size=16, vjust = 0),
+    axis.title.y = element_text(size =16),
+    axis.text = element_text(size=10, color="black"),
+    strip.text = element_text(size = 12),
+    strip.background = element_rect(fill = "gray80", color = "black"),
+    legend.position = "none",
+    axis.line=element_line()
+  )
+# ggsave("figures/d15N+wm.TP.png", device = "png", dpi = "retina", width = 8, height = 4.5, units = "in")

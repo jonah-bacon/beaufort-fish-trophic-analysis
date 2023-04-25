@@ -52,24 +52,24 @@ lw.df$tperiod_collected <-
 lw.df$date_processed <- as.Date(lw.df$date_processed, format = "%d-%b-%Y")
 
 sample.df <- lw.df %>% 
-  select(spp_ID, date_collected, year_collected, month_collected, tperiod_collected, length_mm, weight_kg)
+  dplyr::select(spp_ID, date_collected, year_collected, month_collected, tperiod_collected, length_mm, weight_kg)
 
 stomach.df <- merge(stomach.df, sample.df, by = "spp_ID")
 
 prey.presence <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", "Prey_present", "Relative_fullness", "Total_contents_weight_g") %>% 
+  dplyr::select("spp_ID", "Species", "ID", "Prey_present", "Relative_fullness", "Total_contents_weight_g") %>% 
   merge(., sample.df, by = "spp_ID")
 
 prey.count <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", contains(".Count")) %>% 
+  dplyr::select("spp_ID", "Species", "ID", contains(".Count")) %>% 
   merge(., sample.df, by = "spp_ID")
 
 prey.weight <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", contains(".Weight")) %>% 
+  dplyr::select("spp_ID", "Species", "ID", contains(".Weight")) %>% 
   merge(., sample.df, by = "spp_ID")
 
 prey.percent <- stomach.df %>% 
-  select("spp_ID", "Species", "ID", contains(".Relative_percent")) %>% 
+  dplyr::select("spp_ID", "Species", "ID", contains(".Relative_percent")) %>% 
   merge(., sample.df, by = "spp_ID")
 
 
@@ -120,19 +120,19 @@ prey.percent %>%
 # Stomachs with prey ------------------------------------------------------
 
 stomachs.w.prey <- prey.presence %>% 
-  group_by(Species) %>% 
+  group_by(Species, year_collected) %>% 
   summarise(
     "N_stomachs" = n(),
     "N_stomachs_w_prey" = sum(Prey_present > 0),
     "Proportion" = sum(Prey_present > 0)/length(Prey_present))
 stomachs.w.prey
 
-stomachs.w.prey %>% 
-  gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
-ggplot() +
-  geom_col(aes(x = year_collected, y = Value, fill = Presence)) +
-  facet_wrap(vars(Species)) +
-  scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE))
+# stomachs.w.prey %>%
+#   gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>%
+# ggplot() +
+#   geom_col(aes(x = year_collected, y = Value, fill = Presence)) +
+#   facet_wrap(vars(Species)) +
+#   scale_fill_discrete(name = "Prey presence", labels = c("Absent", "Present"), guide = guide_legend(reverse = TRUE))
 
 stomachs.w.prey %>% 
   gather(key = "Presence", value = "Value", 3:4, na.rm = T) %>% 
@@ -355,6 +355,7 @@ df11 <- long.prey.df %>%
   )
 df12 <- merge(df10,df11, by = c("Species", "year_collected", "lg_group"))
 df12$Percent.percent <- df12$Total.Prey.Percent/df12$Total.Stomach.Percent
+
 ggplot(df12, aes(x = year_collected, y = Percent.percent)) +
   geom_col(aes(fill = Prey_group)) +
   facet_wrap(vars(Species), nrow = 2)
@@ -1108,7 +1109,7 @@ levins.Bn(levins.df, 11, levins.sampleInfo)
 # Save/load RData file ---------------------------------------------------------
 
 save.image(file = "data/stomach_content_workspace.RData")
-load("data/stomach_content_workspace.RData")
+# load("data/stomach_content_workspace.RData")
 
 # Boxplots ----------------------------------------------------------------
 
@@ -1343,18 +1344,38 @@ predict(glm.fit, newdata, "probs")
 require(vegan)
 require(bugR)
 
+prey.presence <- stomach.df %>% 
+  dplyr::select("spp_ID", "Species", "ID", "Prey_present", "Relative_fullness", "Total_contents_weight_g") %>% 
+  merge(., sample.df, by = "spp_ID")
+
+prey.count <- stomach.df %>% 
+  dplyr::select("spp_ID", "Species", "ID", contains(".Count")) %>% 
+  merge(., sample.df, by = "spp_ID")
+
+prey.weight <- stomach.df %>% 
+  dplyr::select("spp_ID", "Species", "ID", contains(".Weight")) %>% 
+  merge(., sample.df, by = "spp_ID")
+
+prey.percent <- stomach.df %>% 
+  dplyr::select("spp_ID", "Species", "ID", contains(".Relative_percent")) %>% 
+  merge(., sample.df, by = "spp_ID")
+
 ord1 <- prey.count %>% 
-  dplyr::select(-c(Species,ID)) %>% 
-  filter(spp_ID != "ARCS_106")
+  dplyr::select(-c(Species,ID,date_collected,year_collected,month_collected,tperiod_collected,length_mm,weight_kg)) %>% 
+  filter(!spp_ID %in% c("ARCS_106","HBWF_31","HBWF_18"))
 rownames(ord1) <- ord1$spp_ID
 ord1 <- ord1 %>% 
   dplyr::select(-spp_ID)
 ord1[is.na(ord1)] <- 0
+ord1[ord1 == ""] <- 0
+ord1$Isopods.Count <- as.numeric(ord1$Isopods.Count)
+ord1$Amphipods.Count <- as.numeric(ord1$Amphipods.Count)
+ord1$Bivalves.Count <- as.numeric(ord1$Bivalves.Count)
 ord1 <- as.matrix(ord1)
 ord2 <- ord1[which(rowSums(ord1) > 0),]
 
 weight.ord <- prey.weight %>% 
-  dplyr::select(-c(Species,ID,Unidentifiable.Weight_g,Vegetation.Weight_g)) %>% 
+  dplyr::select(-c(Species,ID,Unidentifiable.Weight_g,Vegetation.Weight_g,date_collected,year_collected,month_collected,tperiod_collected,length_mm,weight_kg)) %>% 
   filter(spp_ID != "ARCS_106")
 rownames(weight.ord) <- weight.ord$spp_ID
 weight.ord <- weight.ord %>% 
@@ -1693,3 +1714,32 @@ ggplot(data = filter(weight.dat, Prey_group == "Isopods"), aes(x = length_mm, y 
     legend.position = c(0.1,0.75)
   )
 # ggsave("figures/stomach_contents/isopod_weight_by_length.png", device = "png", dpi = "retina", width = 9.7, height = 4.85, units = "in")
+
+
+
+# Suggested modeling perhaps ----------------------------------------------
+
+arcs.glm.df <- stomach.glm.df %>% 
+  mutate(arcs.TF = ifelse(dummy == 1, 1, 0))
+arcs_logit_model <- glm(arcs.TF ~ . - Species - date_collected - year_collected - month_collected - tperiod_collected - length_mm - weight_kg - dummy, data = arcs.glm.df, family = binomial)
+arcs_step_model <- step(arcs_logit_model, direction = "both", k = log(nrow(arcs.glm.df)), trace = FALSE)
+summary(arcs_step_model)
+
+bdwf.glm.df <- stomach.glm.df %>% 
+  mutate(bdwf.TF = ifelse(dummy == 3, 1, 0))
+bdwf_logit_model <- glm(bdwf.TF ~ . - Species - date_collected - year_collected - month_collected - tperiod_collected - length_mm - weight_kg - dummy, data = bdwf.glm.df, family = binomial)
+bdwf_step_model <- step(bdwf_logit_model, direction = "both", k = log(nrow(bdwf.glm.df)), trace = FALSE)
+summary(bdwf_step_model)
+
+hbwf.glm.df <- stomach.glm.df %>% 
+  mutate(hbwf.TF = ifelse(dummy == 4, 1, 0))
+hbwf_logit_model <- glm(hbwf.TF ~ . - Species - date_collected - year_collected - month_collected - tperiod_collected - length_mm - weight_kg - dummy, data = hbwf.glm.df, family = binomial)
+hbwf_step_model <- step(hbwf_logit_model, direction = "both", k = log(nrow(hbwf.glm.df)), trace = FALSE)
+summary(hbwf_step_model)
+
+lscs.glm.df <- stomach.glm.df %>% 
+  mutate(lscs.TF = ifelse(dummy == 2, 1, 0))
+lscs_logit_model <- glm(lscs.TF ~ 1 + . - Species - date_collected - year_collected - month_collected - tperiod_collected - length_mm - weight_kg - dummy, data = lscs.glm.df, family = binomial)
+lscs_step_model <- step(lscs_logit_model, direction = "both", k = log(nrow(lscs.glm.df)), trace = FALSE)
+summary(lscs_step_model)
+
